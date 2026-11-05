@@ -321,3 +321,4 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .qte i{display:block;height:100%;background:var(--red);animation:qte linear forwards}
 @keyframes qte{from{width:100%}to{width:0}}
 .check .tags{border:none;background:none;padding:0;justify-content:flex-start}
+.squid-wrap .tag svg{width:10px!important;height:10px!important}
