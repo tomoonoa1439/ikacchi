@@ -4,7 +4,7 @@
 // =========================================================
 import { CONFIG, FORMS, WEATHER, SPECIES } from './config.js';
 import { G, bus, clamp, dayKey, isNight, hour, hashStr } from './state.js';
-import { nudge, traitMul } from './traits.js';
+import { nudge, traitMul, idleMin, remember, snapshot } from './traits.js';
 
 export const stageInfo = id => CONFIG.stages.find(s => s.id === id);
 const stageByAge = age => CONFIG.stages.find(s => age < s.until);
@@ -57,7 +57,8 @@ export function step(dt, live) {
 
   S.ageMin += dt;
   const night = isNight();
-  S.hunger = clamp(S.hunger - r.hunger * dt * (S.sleeping ? .5 : 1));
+  const M = traitMul(S.tr);
+  S.hunger = clamp(S.hunger - r.hunger * dt * (S.sleeping ? .5 : 1) * M.hunger);
 
   // ---- ねむり ----
   if (S.sleeping) {
@@ -65,7 +66,7 @@ export function step(dt, live) {
     if (night && S.lightsOff) S.happy = clamp(S.happy + .5 * dt);
     if (S.energy >= 100 && !night) { wake(S); say(live, 'ふわぁ…よくねた！'); }
   } else {
-    S.energy = clamp(S.energy - r.energy * dt * (night ? 1.6 : 1));
+    S.energy = clamp(S.energy - r.energy * dt * (night ? 1.6 : 1) * M.energy);
     if (S.energy <= 0) {
       S.sleeping = true; S.lightsOff = false; S.pos = 50; S.happy = clamp(S.happy - 10); care('bad');
       log('つかれて ゆかで ねちゃった'); say(live, '…ぐぅ（ゆかで ねちゃった）');
@@ -89,7 +90,9 @@ export function step(dt, live) {
   if (S.hunger < 20) down += 4;
   if (S.clean < 40) down += 3;
   if (S.sick) down += 4;
-  if (S.messes.length) down += 1;
+  if (S.messes.length) down += 1.5 * M.dirt;
+  // さみしがりは かまってもらえないと しょんぼり
+  if (idleMin(S) > 20 && !S.sleeping) down += 2 * M.lonely;
   if (over > 10) down += 1;
   if (S.sleeping && !S.lightsOff) down += 1;
   S.happy = clamp(S.happy - down * dt);
@@ -98,7 +101,7 @@ export function step(dt, live) {
   if (!S.sick && (S.hunger <= 0 || S.clean <= 10 || over > 20)) {
     S.sickTimer += dt;
     if (S.sickTimer > 3) {
-      S.sick = true; S.sickTimer = 0; care('bad', 2);
+      S.sick = true; S.sickTimer = 0; care('bad', 2); remember('びょうきに なった', 1);
       log(over > 20 ? 'ふとりすぎて ぐあいが わるくなった' : 'ぐあいが わるくなった');
       say(live, 'うぅ…ぐあいが わるい…');
     }
@@ -149,6 +152,7 @@ export function hatch(live) {
   S.shells += 5;
   if (!S.seenSp.includes(S.sp)) S.seenSp = [...S.seenSp, S.sp];
   const sp = speciesOf(S.sp);
+  S.lastTouch = 0; remember('たまごから うまれた', 3);
   log(`${S.gen > 1 ? S.gen + 'だいめの ' : ''}${sp.name}が うまれた！${sp.rare ? '（レア！）' : ''}`);
   if (live) {
     say(live, sp.rare ? `ぱかっ！ まぼろしの ${sp.name}だ！` : `ぱかっ！ ${sp.name}が うまれたよ！`);
@@ -163,7 +167,7 @@ function accident(live) {
   S.bladder = 0;
   S.happy = clamp(S.happy - 15);
   care('bad'); nudge({ yuki: -.8 }, live);
-  if (S.messes.length < 6) S.messes.push({ x: Math.round(14 + Math.random() * 72) });
+  if (S.messes.length < 6) S.messes.push({ x: Math.round(14 + Math.random() * 72), a: Math.floor(S.ageMin) });
   log(S.sleeping ? 'おねしょ しちゃった' : 'おもらし しちゃった');
   if (live) { say(live, S.sleeping ? 'あっ… おねしょ しちゃった…' : 'あっ… もらしちゃった…'); bus.emit('beep', 220, .2); }
 }
@@ -183,7 +187,7 @@ function grow(st, live) {
   if (st.id === 'child') S.care = { good: 0, bad: 0, feed: 0, play: 0 };
   if (st.id === 'adult') S.form = decideForm(S.care, S);
   const nm = stageName(S);
-  log(`${nm}に せいちょうした！`);
+  log(`${nm}に せいちょうした！`); remember(`${nm}に なった`, st.id === 'adult' ? 3 : 2);
   if (live) { say(live, `${nm}に せいちょうした！`); bus.emit('fx', 'sparkle'); bus.emit('fx', 'party', 30); bus.emit('beep', 880, .15); }
 }
 
@@ -194,6 +198,8 @@ export function catchUp() {
   const mins = S.paused ? 0 : Math.min((Date.now() - S.lastSaved) / 60000, CONFIG.maxOfflineMinutes);
   const before = S.messes.length, mBefore = S.mistakes;
   for (let t = 0; t < mins; t += 1) step(Math.min(1, mins - t), false);
+  // ながい あいだ ひとりで まっていると、ひとりに なれるけど ちょっと こわがりに
+  if (mins > 360 && S.stage !== 'egg' && !S.travelReady) { nudge({ amae: -1.5, yuki: -1, kind: -.5 }, false); remember('ながい あいだ ひとりで まっていた', 1); }
   let daily = false;
   if (S.lastDay !== dayKey()) {
     S.lastDay = dayKey(); S.shells += CONFIG.dailyBonus; daily = true;

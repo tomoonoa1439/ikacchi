@@ -273,7 +273,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .check .perbox>b{font-size:15px;justify-content:flex-start}
 .check .perbox>small{font-size:11px;color:var(--sub);margin-bottom:2px}
 .trow{display:flex;align-items:center;gap:6px;font-size:11px}
-.trow i{font-style:normal;width:56px;color:var(--sub);font-weight:700}
+.trow i{font-style:normal;width:76px;white-space:nowrap;color:var(--sub);font-weight:700}
 .trow .bar.sm{flex:1;width:auto}
 .trow em{font-style:normal;width:22px;text-align:right;font-weight:800;font-size:11px}
 .helpgrid div{font-size:11px}.helpgrid b{font-size:11px;color:var(--ink)}
@@ -288,3 +288,36 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .act.frozen{opacity:.4}
 .mini.stop{border-color:#9fd3e6;color:#4f8fa8}
 .mini.stop.on{background:#e2f3e6;border-color:#7cc68d;color:#4f9a5a;border-style:solid}
+/* こころ */
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0}
+.qtag{font-style:normal;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:#efe2c5;color:var(--sub)}
+.qtag.up{background:#ffe3ea;color:#e2667f}.qtag.dn{background:#e2eef8;color:#4f7fa8}
+.check .perbox .btn{align-self:center;margin-top:4px}
+.mindtop{display:flex;flex-direction:column;align-items:center;gap:2px}
+.ptype{font-size:20px;color:var(--accent-d)}.mindtop small{font-size:11px;color:var(--sub);font-weight:700}
+.radar{width:100%;max-width:320px;display:block;margin:0 auto}
+.arrows{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:2px 0 8px}
+.arrows span{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px}
+.arrows .up{background:#e2f3e6;color:#4f9a5a}.arrows .dn{background:#fde4e0;color:#c9553f}
+.trowbox{display:grid!important;grid-template-columns:1fr;gap:2px}
+.modal h4{margin:12px 0 4px;font-size:13px;text-align:left}
+.mem div span{width:40px}
+.compat{margin:-2px 0 6px!important;font-size:12px!important}.compat b{font-size:13px}
+.compat.c4 b{color:#e2667f}.compat.c3 b{color:#4f9a5a}.compat.c1 b{color:#6c7d90}
+.choice.unk{opacity:.55}
+/* ハプニング */
+.actor{position:absolute;z-index:5;pointer-events:none;display:none}
+.actor.a-hook{display:block;left:58%;top:-10px;animation:hookdown 2.6s ease-out forwards}
+@keyframes hookdown{from{transform:translateY(-80px)}to{transform:translateY(60px)}}
+.actor.a-shark{display:block;top:30%;animation:swim 5s linear infinite}
+@keyframes swim{from{left:110%}to{left:-30%}}
+.actor.a-tako,.actor.a-jelly,.actor.a-crab,.actor.a-camera,.actor.a-bottle,.actor.a-map,.actor.a-pearl{display:block;right:8%;bottom:20%;animation:bob 1.8s ease-in-out infinite}
+.actor.a-whale{display:block;top:18%;opacity:.5;animation:swim 9s linear infinite}
+.actor.a-sparkle{display:block;top:8%;animation:shoot 1.6s ease-in infinite}
+@keyframes shoot{from{left:85%;transform:translateY(0)}to{left:10%;transform:translateY(60px);opacity:0}}
+.actor.a-wave{display:block;left:0;bottom:30%;animation:swim 2s linear infinite}
+.evic{display:flex;align-items:flex-end;padding-bottom:10px}.evic.bob{animation:bob 1.6s ease-in-out infinite}
+.qte{height:8px;border-radius:99px;background:#efe2c5;overflow:hidden;margin:8px 30px 0}
+.qte i{display:block;height:100%;background:var(--red);animation:qte linear forwards}
+@keyframes qte{from{width:100%}to{width:0}}
+.check .tags{border:none;background:none;padding:0;justify-content:flex-start}

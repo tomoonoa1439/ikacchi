@@ -7,8 +7,10 @@ import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, li
 import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
 import { net, makeLink } from './net.js';
-import { REL, REL_RULE, relOf, relStage, perOf, friendPer } from './social.js';
-import { TRAITS } from './traits.js';
+import { REL, REL_RULE, relOf, relStage, perOf, friendPer, compat, compatMark } from './social.js';
+import { cardTraits } from './traits.js';
+import { TRAITS, TKEYS, quirks, moodOf, MOODS, trend, favorite, disliked, itemName, GAME_NAMES } from './traits.js';
+import { EVENT_NAMES } from './events.js';
 import { PERSONALITY } from './config.js';
 import { ic, fillIcons } from './icons.js';
 
@@ -128,7 +130,7 @@ function openInk() {
     shot++; if (ok) hits++; marks.push(ok ? ic('target', 26) : ic('poof', 26)); beep(ok ? 900 : 300, .08);
     if (shot < 3) { newZone(); draw(ok ? 'めいちゅう！' : 'おしい！'); raf = requestAnimationFrame(loop); return; }
     const win = hits >= 2;
-    dispatch('playResult', { win });
+    dispatch('playResult', { win, game: 'ink' });
     showModal(`<h3>${win ? ic('party', 22) + ' めいちゅう！' : 'またあそぼ！'}</h3><div class="score">${marks.join('')}</div>
       <p>ごきげん +${win ? 25 : 10}${win ? ' ／ かいがら+3' : ''} ／ たいじゅう −1g</p>${closeBtn()}`);
   }
@@ -148,7 +150,7 @@ function openGame() {
     const side = ans === 'L' ? 'ひだり' : 'みぎ';
     if (round < 3) return draw(ok ? `あたり！ ${side}を むいたよ` : `ざんねん、${side}でした`);
     const win = wins >= 2;
-    dispatch('playResult', { win });
+    dispatch('playResult', { win, game: 'docchi' });
     showModal(`<h3>${win ? ic('party', 22) + ' かち！' : 'またあそぼ！'}</h3><div class="score">${marks.join('')}</div>
       <p>ごきげん +${win ? 25 : 10}${win ? ' ／ かいがら+3' : ''}</p>${closeBtn()}`);
   }
@@ -172,7 +174,7 @@ function openDig() {
     if (r.kind === 'shells') { cells[i] = ic('shell', 40); msg = `かいがらを ${r.n}こ みつけた！`; beep(760, .06); }
     else if (r.kind === 'find') {
       cells[i] = ic(r.f.ic, 40); beep(r.f.rare >= 3 ? 1200 : 900, .12);
-      msg = `「${r.f.name}」を みつけた！${'★'.repeat(r.f.rare)}${r.first ? '<br><b>ずかんに とうろく！ かいがら+2</b>' : ''}`;
+      msg = `${r.treasure ? 'たからの ちずの ばしょだ！ ' : ''}「${r.f.name}」を みつけた！${'★'.repeat(r.f.rare)}${r.first ? '<br><b>ずかんに とうろく！ かいがら+2</b>' : ''}`;
     } else { cells[i] = ic('poof', 40); msg = r.text; beep(300, .06); }
     draw();
   }
@@ -234,13 +236,19 @@ function openZukan(tab = zukanTab) {
       <hr><p>おとなの タイプは こどもの ころの おせわで きまるよ</p><div class="choices">${Object.entries(FORMS).map(([id, f]) => `
       <div class="choice ${S.form === id ? 'cur' : ''}"><span class="grow">${f.name}${f.prefix ? `（${f.prefix}〜）` : ''}${S.form === id ? ' ← いま' : ''}<small>${f.hint}</small></span></div>`).join('')}</div>`;
   }
+  if (tab === 'event') {
+    const seen = S.seenEv || {};
+    body = `<p>いままでに であった ハプニング ${Object.keys(seen).length} / ${Object.keys(EVENT_NAMES).length}</p><div class="choices">${Object.entries(EVENT_NAMES).map(([id, n]) => seen[id]
+      ? `<div class="choice"><span class="ic">${ic({ tako: 'tako', fisher: 'hook', shark: 'shark', star: 'sparkle', bottle: 'bottle', jelly: 'jelly', map: 'map', crabs: 'crab', diver: 'camera', lost: 'pearl', whale: 'whale', wave: 'wave' }[id], 28)}</span><span class="grow">${n}<small>${seen[id]}かい</small></span></div>`
+      : `<div class="choice unk"><span class="ic">？</span><span class="grow">？？？<small>まだ であって いない</small></span></div>`).join('')}</div>`;
+  }
   if (tab === 'album') {
     body = S.album.length ? `<div class="choices">${S.album.map(a => { const f = FORMS[a.form] || FORMS.surume, sp = speciesOf(a.sp); return `
       <div class="choice"><span class="asq">${squidSVG('adult', 'happy', a.form, a.hat, a.sp || 'momo')}</span>
       <span class="grow">${a.gen}だいめ ${esc(a.name)}<small>${(f.prefix ? f.prefix + ' ' : '') + sp.name}・${a.days}にち いきた・なかよしLv.${a.bond}・ミス${a.mistakes}</small></span></div>`; }).join('')}</div>`
       : '<p>まだ たびだった イカは いないよ<br>おとなに なって しばらくすると、ひろい うみへ たびだつよ</p>';
   }
-  showModal(`<h3>${ic('book', 20)} ずかん</h3>${tabs([['finds', 'みつけたもの'], ['forms', 'すがた'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
+  showModal(`<h3>${ic('book', 20)} ずかん</h3>${tabs([['finds', 'もの'], ['forms', 'すがた'], ['event', 'できごと'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
     tab: el => openZukan(el.dataset.t),
     sell: el => { dispatch('sell', { id: el.dataset.id }); openZukan(); },
   });
@@ -398,8 +406,9 @@ function openCheck() {
       <div><span>なまえ</span><b>${esc(S.name || 'イカッチ')}（${S.gen}だいめ）</b></div>
       <div><span>しゅるい</span><b>${speciesOf(S.sp).name}</b></div>
       <div class="perbox"><span>せいかく</span><b>${perOf(S.per).name}</b><small>${perOf(S.per).desc}</small>
-        ${Object.entries(TRAITS).map(([k, t]) => `<div class="trow"><i>${t.name}</i><span class="bar sm"><i style="width:${S.tr[k]}%;background:${t.color}"></i></span><em>${Math.round(S.tr[k])}</em></div>`).join('')}
-        <button class="btn xs" data-a="perHelp">せいかくの かわりかた</button></div>
+        <div class="tags">${quirks(S.tr).map(q => `<em class="qtag ${q.up ? 'up' : 'dn'}">${q.name}</em>`).join('') || '<em class="qtag">とくに なし</em>'}</div>
+        <small>いまの きぶん：<b>${MOODS[moodOf(S)] || ''}</b></small>
+        <button class="btn sm" data-a="mind">${ic('heart', 16)} こころを のぞく</button></div>
       <div><span>すがた</span><b>${stageName(S)}</b></div>
       <div><span>ねんれい</span><b>${ageYears(S)}さい <small>（うまれて ${S.ageMin < 60 ? Math.floor(S.ageMin) + 'ふん' : (S.ageMin / 60).toFixed(1) + 'じかん'}）</small></b></div>
       <div><span>たいじゅう</span><b>${S.weight}g ${over > 10 ? '<em>ふとりぎみ</em>' : ''}</b></div>
@@ -411,24 +420,69 @@ function openCheck() {
       ${S.stage === 'child' ? `<div><span>こども期の きろく</span><b><small>おせわ${S.care.good}・ミス${S.care.bad}・ごはん${S.care.feed}・あそび${S.care.play}</small></b></div>` : ''}
       ${S.stage === 'adult' ? `<div><span>たびだちまで</span><b>あと ${(left / 60).toFixed(1)}じかん</b></div>` : ''}
     </div>
-    <p class="note">${ic('angry', 20)}が でたら わがまま。しかって しつけよう<br>${ic('bulb', 20)}が でたら でんきを けしてあげよう</p></div>${closeBtn()}`, { perHelp: openPerHelp });
+    <p class="note">${ic('angry', 20)}が でたら わがまま。しかって しつけよう<br>${ic('bulb', 20)}が でたら でんきを けしてあげよう</p></div>${closeBtn()}`, { perHelp: openPerHelp, mind: openMind });
+}
+
+/* ---------------- こころ（レーダーチャート・すききらい・おもいで） ---------------- */
+function radarSVG(t, prev) {
+  const N = TKEYS.length, cx = 150, cy = 112, R0 = 76;
+  const pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / N; return [cx + Math.cos(a) * R0 * v / 100, cy + Math.sin(a) * R0 * v / 100]; };
+  const ring = v => TKEYS.map((_, i) => pt(i, v).join(',')).join(' ');
+  const poly = tt => TKEYS.map((k, i) => pt(i, tt[k]).map(n => n.toFixed(1)).join(',')).join(' ');
+  return `<svg viewBox="0 0 300 228" class="radar">
+    ${[25, 50, 75, 100].map(v => `<polygon points="${ring(v)}" fill="${v === 100 ? '#fff' : 'none'}" stroke="#e3d3b3" stroke-width="1.2"/>`).join('')}
+    ${TKEYS.map((_, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i, 100)[0]}" y2="${pt(i, 100)[1]}" stroke="#efe2c5"/>`).join('')}
+    ${prev ? `<polygon points="${poly(prev)}" fill="none" stroke="#bba987" stroke-width="1.5" stroke-dasharray="3 3"/>` : ''}
+    <polygon points="${poly(t)}" fill="rgba(255,143,168,.35)" stroke="#e2667f" stroke-width="2.2" stroke-linejoin="round"/>
+    ${TKEYS.map((k, i) => { const [x, y] = pt(i, 122); return `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${TRAITS[k].color}" font-family="inherit">${TRAITS[k].short}</text>`; }).join('')}
+  </svg>`;
+}
+function openMind() {
+  const S = G.state, p = perOf(S.per);
+  const hist = (S.trHist || []).filter(x => S.ageMin - x.a <= 1440);
+  const prev = hist.length ? hist[0].tr : null;
+  const arrows = TKEYS.map(k => ({ k, d: trend(k) })).filter(x => Math.abs(x.d) >= 2).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 4);
+  const likeRow = (cat, label) => {
+    const f = favorite(cat), h = disliked(cat);
+    return `<div><span>${label}</span><b>${f ? `<em class="qtag up">すき：${itemName(cat, f)}</em>` : ''}${h ? `<em class="qtag dn">きらい：${itemName(cat, h)}</em>` : ''}${!f && !h ? '<small>まだ わからない</small>' : ''}</b></div>`;
+  };
+  const best = [...S.friends].sort((a, b) => (S.rel?.[b.pid]?.pt || 0) - (S.rel?.[a.pid]?.pt || 0))[0];
+  const fmt = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
+  showModal(`<h3>${ic('heart', 22)} ${esc(S.name || 'イカッチ')}の こころ</h3>
+    <div class="scroll">
+      <div class="mindtop"><b class="ptype">${p.name}</b><small>${p.desc}</small>
+        <div class="tags">${quirks(S.tr).map(q => `<em class="qtag ${q.up ? 'up' : 'dn'}">${q.name}</em>`).join('')}</div></div>
+      ${radarSVG(S.tr, prev)}
+      <p class="note">${prev ? 'てんせんは 1にち まえの こころ' : 'じかんが たつと へんかが みえるよ'}</p>
+      ${arrows.length ? `<div class="arrows">${arrows.map(a => `<span class="${a.d > 0 ? 'up' : 'dn'}">${TRAITS[a.k].name} ${a.d > 0 ? 'アップ' : 'ダウン'}</span>`).join('')}</div>` : ''}
+      <div class="check">
+        <div><span>いまの きぶん</span><b>${MOODS[moodOf(S)] || ''}</b></div>
+        ${likeRow('food', 'たべもの')}${likeRow('game', 'あそび')}${likeRow('hat', 'ぼうし')}
+        ${best ? `<div><span>いちばんの ともだち</span><b>${esc(best.name)}</b></div>` : ''}
+        ${S.parent ? `<div><span>おや</span><b>${esc(S.parent.name)}（${perOf(S.parent.per).name}）</b></div>` : ''}
+        <div class="trowbox">${TKEYS.map(k => `<div class="trow"><i>${TRAITS[k].name}</i><span class="bar sm"><i style="width:${S.tr[k]}%;background:${TRAITS[k].color}"></i></span><em>${Math.round(S.tr[k])}</em></div>`).join('')}</div>
+      </div>
+      <h4>おもいで</h4>
+      <div class="log mini mem">${(S.mem || []).length ? S.mem.slice(0, 10).map(m => `<div><span>${fmt(m.t)}</span>${'★'.repeat(Math.min(3, m.w))} ${esc(m.text)}</div>`).join('') : '<div>まだ おもいでは ないよ</div>'}</div>
+    </div>
+    <div class="row"><button class="btn gray" data-a="help">そだてかたの ヒント</button><button class="btn" data-a="close">とじる</button></div>`, { help: openPerHelp });
 }
 
 function openPerHelp() {
-  showModal(`<h3>${ic('heart', 22)} せいかくの かわりかた</h3>
-    <p>せいかくは あなたの かかわりかたで どんどん かわるよ</p>
-    <div class="scroll"><div class="check helpgrid">
-      <div><span>なでる</span><b>やさしさ・ゆうき アップ</b></div>
-      <div><span>あそぶ・すなほり</span><b>げんき アップ（かつと ゆうきも）</b></div>
-      <div><span>わがままを しかる</span><b>すなおさ アップ</b></div>
-      <div><span>トイレ・はやね</span><b>すなおさ アップ</b></div>
-      <div><span>わがまま中に おやつ・なでる</span><b>すなおさ ダウン（あまえんぼうに）</b></div>
-      <div><span>りふじんに しかる</span><b>すなおさ・ゆうき・やさしさ ダウン</b></div>
-      <div><span>ほうっておく（おせわミス）</span><b>ゆうき・やさしさ ダウン</b></div>
-      <div><span>ともだちと なかなおり・おすそわけ</span><b>やさしさ アップ</b></div>
-    </div>
+  const rows = [
+    ['なでる', 'やさしさ・ゆうき・あまえ アップ'], ['あそぶ', 'げんき アップ（かつと ゆうき、ちがう あそびで こうきしん）'],
+    ['すなほり・かいもの・あたらしい ともだち', 'こうきしん アップ'], ['わがままを しかる・トイレ・はやね', 'すなおさ アップ'],
+    ['よごれを すぐ おそうじ', 'きれいずき アップ（おそいと ちらかしやに）'], ['おなかいっぱいでも たべさせる・おやつ', 'くいしんぼう アップ'],
+    ['わがまま中に おやつ・なでる', 'すなおさ ダウン・あまえ アップ'], ['りふじんに しかる', 'すなおさ・ゆうき・やさしさ ダウン'],
+    ['ほうっておく（おせわミス）', 'ゆうき・やさしさ ダウン'], ['ながい あいだ るす', 'あまえ・ゆうき ダウン（ひとりがすきに）'],
+    ['ともだちと なかなおり・おすそわけ', 'やさしさ アップ'], ['ハプニングで にげる・たすける', 'ゆうき・やさしさ アップ（こわい めに あうと ダウン）'],
+  ];
+  showModal(`<h3>${ic('heart', 22)} そだてかたの ヒント</h3>
+    <p>せいかくは あなたの かかわりかたで どんどん かわるよ。<br>あかちゃんの ころほど かわりやすく、おとなに なると かわりにくい</p>
+    <div class="scroll"><div class="check helpgrid">${rows.map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>
+    <h4>せいかくの タイプ（${Object.keys(PERSONALITY).length}しゅるい）</h4>
     <div class="choices">${Object.values(PERSONALITY).map(p => `<div class="choice"><span class="grow">${p.name}<small>${p.desc} ／ ${p.hint}</small></span></div>`).join('')}</div></div>
-    <div class="row"><button class="btn gray" data-a="back">もどる</button></div>`, { back: openCheck });
+    <div class="row"><button class="btn gray" data-a="back">もどる</button></div>`, { back: openMind });
 }
 bus.on('perchange', d => setTimeout(() => eventModal(() => {
   const S = G.state;
@@ -438,6 +492,31 @@ bus.on('perchange', d => setTimeout(() => eventModal(() => {
     <p class="note">${PERSONALITY[d.to].desc}</p>${closeBtn()}`);
   fx('sparkle'); beep(990, .1);
 }), 400));
+
+/* ---------------- うみの ハプニング ---------------- */
+bus.on('happening', ev => setTimeout(() => eventModal(() => {
+  const S = G.state;
+  $('actor').className = 'actor a-' + ev.actor; $('actor').innerHTML = ic(ev.actor, 64);
+  let done = false;
+  const finish = helped => {
+    if (done) return; done = true;
+    clearTimeout(timer);
+    const r = ev.resolve(helped);
+    showModal(`<h3>${ic(r.icon, 22)} ${r.good ? 'よかった！' : 'あらら…'}</h3>
+      <div class="pair">${squidSVG(S.stage, r.good ? 'happy' : 'sad', S.form, S.inv.hat, S.sp)}<span class="evic">${ic(ev.actor, 56)}</span></div>
+      <p>${esc(r.text).replace(/\n/g, '<br>')}</p>${closeBtn()}`);
+    $('actor').className = 'actor'; $('actor').innerHTML = '';
+    beep(r.good ? 880 : 260, .12); render(); save();
+  };
+  showModal(`<h3>${ic(ev.actor, 24)} ${esc(ev.title)}</h3>
+    <div class="pair">${squidSVG(S.stage, 'normal', S.form, S.inv.hat, S.sp)}<span class="evic bob">${ic(ev.actor, 56)}</span></div>
+    <p>${esc(ev.intro)}</p>
+    ${ev.help ? `<div class="row"><button class="btn big" data-a="help">${esc(ev.help.label)}</button></div><div class="qte"><i style="animation-duration:${ev.help.ms}ms"></i></div>
+      <p class="note">${esc(S.name || 'イカッチ')}が いうことを きくかは せいかく しだい</p>`
+    : `<p class="note">${esc(S.name || 'イカッチ')}は どうするかな…</p>`}`, { help: () => finish(true) }, true);
+  beep(660, .08); setTimeout(() => beep(520, .08), 120);
+  const timer = setTimeout(() => finish(false), ev.help ? ev.help.ms : 2600);
+}), 200));
 
 /* ---------------- たびだち（せだいこうたい） ---------------- */
 function openTravel() {
@@ -466,6 +545,7 @@ function openVisitor() {
     <p>${esc(v.card.owner || 'ともだち')}の ${esc(v.card.title || '')}</p>
     <div class="pair">${squidSVG(S.stage, r.kenka ? 'sad' : 'happy', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, r.kenka ? 'sad' : 'happy', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>
     <div class="pers"><span>${esc(me)}<b>${perOf(S.per).name}</b></span><span>${esc(you)}<b>${perOf(friendPer(v.card)).name}</b></span></div>
+    ${(() => { const c = compatMark(compat(S.tr, cardTraits(v.card))); return `<p class="compat ${c.cls}">あいしょう：<b>${c.mark}</b></p>`; })()}
     <div class="relbox">${relBadge(pid)}<div class="bar sm"><i style="width:${meter}%;background:var(--accent)"></i></div><small>${nextInfo(r)}</small></div>
     <p class="${r.kenka ? 'kenka' : ''}">いま：${doing}</p>
     ${recent.length ? `<div class="log mini">${recent.map(l => `<div>${esc(l.text)}</div>`).join('')}</div>` : ''}
@@ -524,7 +604,7 @@ bus.on('relchange', d => {
 export function askName() {
   const S = G.state;
   if (S.stage === 'egg' || S.name) return;
-  showModal(`<h3>${ic('chick', 20)} ${speciesOf(S.sp).name}が うまれたよ！</h3>${speciesOf(S.sp).rare ? '<p><b class="rare">まぼろしの レアイカ！</b></p>' : ''}<div class="zsq hero">${squidSVG('baby', 'happy', null, null, S.sp)}</div><p>${speciesOf(S.sp).desc}<br>せいかくは「${perOf(S.per).name}」みたい<br>なまえを つけてあげよう</p>
+  showModal(`<h3>${ic('chick', 20)} ${speciesOf(S.sp).name}が うまれたよ！</h3>${speciesOf(S.sp).rare ? '<p><b class="rare">まぼろしの レアイカ！</b></p>' : ''}<div class="zsq hero">${squidSVG('baby', 'happy', null, null, S.sp)}</div><p>${speciesOf(S.sp).desc}<br>${S.parent ? `おやの ${esc(S.parent.name)}に すこし にてるかも？<br>` : ''}いまの せいかくは「${perOf(S.per).name}」みたい（そだてかたで かわるよ）<br>なまえを つけてあげよう</p>
     <input id="nameInput" maxlength="8" placeholder="イカッチ">
     <div class="row"><button class="btn" data-a="ok">けってい</button></div>`, { ok }, true);
   function ok() { S.name = ($('nameInput').value.trim() || 'イカッチ'); closeModal(); say(`ぼく ${S.name}！ よろしくね`); render(); save(); }
@@ -704,7 +784,7 @@ export function render() {
   } else {
     $('petName').textContent = S.name || 'イカッチ';
     const age = S.ageMin < 60 ? `${Math.floor(S.ageMin)}ふん` : `${Math.floor(S.ageMin / 60)}じかん`;
-    $('petInfo').textContent = `${S.gen > 1 ? S.gen + 'だいめ・' : ''}${stageName(S)}・${ageYears(S)}さい（${age}）・${S.weight}g${S.sick ? '・びょうき' : ''}`;
+    $('petInfo').textContent = `${S.gen > 1 ? S.gen + 'だいめ・' : ''}${stageName(S)}・${ageYears(S)}さい（${age}）・${S.weight}g・${perOf(S.per).name}・きぶん：${MOODS[moodOf(S)] || ''}`;
     $('bond').innerHTML = `${ic('heart', 13)} なかよし Lv.${bondLevel()}`;
   }
   $('meters').innerHTML = egg

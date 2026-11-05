@@ -6,8 +6,11 @@ import { step, catchUp, weatherToday, log } from './sim.js';
 import { render, decorate, say, askName, handleLink } from './ui.js';
 import { parseLink } from './net.js';
 import { socialTick, relOf } from './social.js';
+import { idleTick, setWeatherFn } from './traits.js';
+import { eventTick } from './events.js';
 
 G.state = load() || newState();
+setWeatherFn(() => weatherToday().id);
 const away = catchUp();
 
 // にじの日ボーナス
@@ -41,6 +44,7 @@ setInterval(() => {
     G.visitor.pos = r.kenka ? Math.round(rand(80, 86)) : r.lover && !S.sleeping ? Math.min(84, S.pos + 26) : Math.round(rand(62, 78));
     socialTick();
   }
+  if (tick % 5 === 0) { idleTick(); eventTick(); }
   render();
   if (tick % 5 === 0) save();
 }, 1000);

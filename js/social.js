@@ -8,7 +8,7 @@
 import { G, bus, clamp, dayKey, pick, hashStr } from './state.js';
 import { log, addBond } from './sim.js';
 import { PERSONALITY } from './config.js';
-import { traitMul, cardTraits, nudge, perLabel } from './traits.js';
+import { traitMul, cardTraits, nudge, perLabel, fillTraits, remember } from './traits.js';
 
 export const REL = {
   shiriai:   { name: 'しりあい', hearts: 0 },
@@ -20,7 +20,20 @@ export const REL = {
 const ORDER = ['shiriai', 'tomodachi', 'nakayoshi', 'shinyu', 'koibito'];
 export const REL_RULE = { tomodachi: 20, nakayoshi: 50, shinyu: 80, confess: 90, talkPerDay: 5, kenkaMinutes: 30 };
 export const perOf = id => PERSONALITY[id] || PERSONALITY.mypace;
-export const friendPer = card => perLabel(cardTraits(card));
+export const friendPer = card => card.per && PERSONALITY[card.per] && card.tr ? card.per : perLabel(cardTraits(card));
+
+// ---- あいしょう（0〜1）：にている ところ ＋ おぎないあう ところ − ぶつかる ところ ----
+export function compat(a0, b0) {
+  const a = fillTraits(a0), b = fillTraits(b0);
+  const same = 1 - (Math.abs(a.genki - b.genki) + Math.abs(a.kirei - b.kirei) + Math.abs(a.kouki - b.kouki) + Math.abs(a.amae - b.amae)) / 400;
+  let v = same * .6 + (a.kind + b.kind) / 200 * .3;
+  if (Math.abs(a.yuki - b.yuki) > 30 && Math.max(a.kind, b.kind) > 60) v += .1;   // ゆうきの ある こが こわがりを まもる
+  if (a.sunao < 35 && b.sunao < 35) v -= .15;                                    // いじっぱりどうしは ぶつかる
+  if (Math.abs(a.kirei - b.kirei) > 45) v -= .08;                                // きれいずき と ちらかしや
+  return clamp(v + .1, 0, 1);
+}
+export const compatMark = v => v >= .72 ? { mark: 'さいこう', cls: 'c4' } : v >= .6 ? { mark: 'いい', cls: 'c3' } : v >= .46 ? { mark: 'ふつう', cls: 'c2' } : { mark: 'いまいち', cls: 'c1' };
+const compatWith = card => compat(G.state.tr, cardTraits(card));
 const myMul = () => traitMul(G.state.tr);
 const yourMul = card => traitMul(cardTraits(card));
 
@@ -65,22 +78,49 @@ export const canConfess = (r, card) => !r.lover && !r.kenka && relStage(r) === '
 
 export function addRelPt(pid, n, name) {
   const r = relOf(pid), before = relStage(r);
+  if (n > 0) {
+    const card = G.state.friends.find(f => f.pid === pid);
+    if (card) n *= (.6 + compatWith(card) * .8) * (before === 'shiriai' ? traitMul(G.state.tr).newFriend : 1);
+  }
   r.pt = clamp(r.pt + n, 0, 100);
   const after = relStage(r);
   if (after !== before) {
     const up = ORDER.indexOf(after) > ORDER.indexOf(before);
     log(up ? `${name}と ${REL[after].name}に なった！` : `${name}と ちょっと きょりが できちゃった…（${REL[after].name}）`);
+    if (up && after !== 'tomodachi') remember(`${name}と ${REL[after].name}に なった`, after === 'shinyu' ? 2 : 1);
     bus.emit('relchange', { pid, before, after, up, name });
   }
   return r;
 }
 
-export function startKenka(why = pick(KENKA_REASONS)) {
+// せいかくに あった けんかの りゆう
+function kenkaReason(a, b) {
+  const opts = [
+    ['おやつの とりあいに なった', (a.kui + b.kui) / 100],
+    ['どっちが はやいかで もめた', (a.genki + b.genki) / 100],
+    ['かけっこで ズルしたって いわれた', (a.genki + (100 - b.sunao)) / 120],
+    ['へやを ちらかされて おこった', Math.abs(a.kirei - b.kirei) / 40],
+    ['ほかの こと あそんでたって すねた', (a.amae + b.amae) / 120],
+    ['ひみつきちの ばしょで もめた', (a.kouki + b.kouki) / 120],
+    ['からかわれて ムッとした', (200 - a.kind - b.kind) / 100],
+    ['じゅんばんを ぬかされた', (200 - a.sunao - b.sunao) / 100],
+    ['ないしょの はなしを ばらしちゃった', .4],
+    ['すなの おしろを こわしちゃった', .4],
+  ];
+  let r = Math.random() * opts.reduce((x, o) => x + o[1], 0);
+  for (const o of opts) { r -= o[1]; if (r <= 0) return o[0]; }
+  return pick(KENKA_REASONS);
+}
+
+export function startKenka(why) {
   const v = G.visitor; if (!v) return;
+  why ||= kenkaReason(fillTraits(G.state.tr), cardTraits(v.card));
   const r = relOf(v.card.pid);
   r.kenka = true; r.kenkaUntil = Date.now() + REL_RULE.kenkaMinutes * 60000;
   addRelPt(v.card.pid, -10, v.card.name);
   G.state.happy = clamp(G.state.happy - 10); nudge({ sunao: -.6 });
+  if (!r.kenkaN) remember(`${v.card.name}と はじめて けんかした`, 1);
+  r.kenkaN = (r.kenkaN || 0) + 1;
   log(`${v.card.name}と けんかした（${why}）`);
   bus.emit('kenka', { pid: v.card.pid, name: v.card.name, why });
 }
@@ -100,6 +140,8 @@ function makeUp(meSays) {
   addRelPt(v.card.pid, 15, you); addBond(1);
   nudge(meSays ? { kind: 1.5, sunao: 1.5 } : { kind: 1 });
   log(`${from}が ごめんねって いえて、${to}と なかなおりした`);
+  if (!r.makeupN) remember(`${you}と なかなおり した`, 1);
+  r.makeupN = (r.makeupN || 0) + 1;
   bus.emit('makeup', { from, to });
 }
 
@@ -111,7 +153,7 @@ function confession(meFirst) {
   const listener = meFirst ? yourMul(v.card) : myMul();
   r.askDay = dayKey();
   const ok = Math.random() < clamp((r.pt - 80) / 20, 0, 1) * listener.accept + .1;
-  if (ok) { r.lover = true; nudge({ yuki: 3, kind: 1.5 }); log(`${from}が ${to}に こくはくして、こいびとに なった`); }
+  if (ok) { r.lover = true; nudge({ yuki: 3, kind: 1.5 }); remember(`${you}と こいびとに なった`, 3); log(`${from}が ${to}に こくはくして、こいびとに なった`); }
   else { addRelPt(v.card.pid, -2, you); if (meFirst) nudge({ yuki: -2 }); log(`${from}が ${to}に こくはくしたけど「しんゆうで いたいな」って いわれた`); }
   bus.emit('confess', { from, to, ok });
 }
@@ -153,6 +195,7 @@ export function socialTick() {
   // 1かいの あそびで けんかは 1どまで
   let p = .0016 * Math.pow(P1.kenka, 1.7) * P2.kenka + (S.happy < 40 ? .01 : 0) + (S.fake ? .008 : 0) + (S.hunger < 30 ? .005 : 0);
   if (r.lover) p *= .5;
+  p *= 1.5 - compatWith(v.card);
   if (!v.kenkaDone && Math.random() < p) { v.kenkaDone = true; startKenka(); return; }
 
   // こくはく：しんゆうで ふたりとも おとな。ゆうきの ある ほうが いう

@@ -93,6 +93,19 @@ const P = {
   card: `<rect x="3" y="7" width="26" height="18" rx="3" fill="#fff" ${s}/><circle cx="10" cy="14" r="3" fill="#ff9fb3"/><path d="M6.5 21a3.5 3.5 0 0 1 7 0M17 12h8M17 17h6" ${s} fill="none"/>`,
   pause: `<rect x="7" y="5" width="6.5" height="22" rx="2.5" fill="#6cc3e0" ${s}/><rect x="18.5" y="5" width="6.5" height="22" rx="2.5" fill="#6cc3e0" ${s}/>`,
   play: `<path d="M9 5l18 11-18 11z" fill="#7cc68d" ${s}/>`,
+  // ---- ハプニング ----
+  tako: `<path d="M8 20c-3 3-5 6-3 8M12 21c-1 3-1 6-3 8M16 21v8M20 21c1 3 1 6 3 8M24 20c3 3 5 6 3 8" stroke="#e8657a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+    <path d="M5 16c0-8 5-13 11-13s11 5 11 13c0 4-5 6-11 6S5 20 5 16z" fill="#f47c8e" ${s}/>
+    <circle cx="12" cy="14" r="2.6" fill="#fff"/><circle cx="20" cy="14" r="2.6" fill="#fff"/><circle cx="12.5" cy="14.5" r="1.4" fill="${O}"/><circle cx="20.5" cy="14.5" r="1.4" fill="${O}"/>
+    <ellipse cx="16" cy="19" rx="2" ry="1.5" fill="#c9405a"/><circle cx="9" cy="8" r="1.4" fill="#ffb3c4"/><circle cx="22" cy="7" r="1.1" fill="#ffb3c4"/>`,
+  hook: `<path d="M16 0v16" stroke="#9aa3ad" stroke-width="1.6"/><path d="M16 14v8a5 5 0 0 1-10 0v-2" fill="none" stroke="#7f8a96" stroke-width="2.8" stroke-linecap="round"/><path d="M6 20l-2 3 3 0z" fill="#7f8a96"/>
+    <path d="M14 22c2-5 9-6 11-2 1 2-1 4-3 3" fill="none" stroke="#ff8a5c" stroke-width="4" stroke-linecap="round"/><circle cx="23" cy="19" r=".9" fill="${O}"/>`,
+  shark: `<path d="M2 18c6-7 16-9 24-5l4-5-1 8 2 6-5-3c-8 4-18 4-24-1z" fill="#8a9bb0" ${s}/><path d="M13 12l3-7 3 6" fill="#8a9bb0" ${s}/><path d="M6 19c5 2 12 2 18 0" stroke="#c9d3df" stroke-width="2" fill="none"/><circle cx="8" cy="16" r="1.3" fill="${O}"/>`,
+  jelly: `<path d="M5 16a11 11 0 0 1 22 0c-2 2-4 1-5.5 0S18 17 16 16s-4 1-5.5 0S7 18 5 16z" fill="#e5d4ff" ${s}/><path d="M10 18c-1 4 1 6 0 10M16 18c1 4-1 6 0 10M22 18c-1 4 1 6 0 10" stroke="#c6a8ff" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="12.5" cy="12" r="1.3" fill="${O}"/><circle cx="19.5" cy="12" r="1.3" fill="${O}"/><path d="M11 8a5 5 0 0 1 4-3" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+  map: `<path d="M3 7l8-3 10 3 8-3v21l-8 3-10-3-8 3z" fill="#f6dcae" ${s}/><path d="M11 4v21M21 7v21" stroke="#cfa565" stroke-width="1.5"/><path d="M6 20c3-1 4-5 8-6s5 3 8 1" fill="none" stroke="#c9403a" stroke-width="1.8" stroke-dasharray="2 2"/><path d="M23 12l3 3M26 12l-3 3" stroke="#c9403a" stroke-width="2.2" stroke-linecap="round"/>`,
+  camera: `<rect x="3" y="9" width="26" height="18" rx="4" fill="#5b6b7d" ${s}/><path d="M10 9l2-4h8l2 4" fill="#5b6b7d" ${s}/><circle cx="16" cy="18" r="6" fill="#bfe6ef" ${s}/><circle cx="14" cy="16" r="1.8" fill="#fff"/><circle cx="25" cy="13" r="1.3" fill="#ffd54a"/>`,
+  whale: `<path d="M3 18c0-6 6-10 13-10 8 0 12 5 12 10 0 4-4 7-12 7-3 0-6 0-8-1l-4 3 1-5c-1-1-2-2-2-4z" fill="#6c9bd2" ${s}/><path d="M6 20c4 3 14 3 19 0" stroke="#c9dcf2" stroke-width="2" fill="none"/><circle cx="21" cy="15" r="1.3" fill="${O}"/><path d="M15 7c-1-2-3-3-4-2M15 7c1-2 3-3 4-2" stroke="#8fd3f4" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
   // ---- きせかえ ----
   hachimaki: `<path d="M3 13c8-4 18-4 26 0v6c-8-4-18-4-26 0z" fill="#fff" ${s}/><circle cx="16" cy="13.5" r="3" fill="#f0506a"/><path d="M27 16l3 7M27 16l-1 8" ${s}/>`,
   ribbon: `<path d="M16 16 4 8v16zM16 16l12-8v16z" fill="#ff6f9a" ${s}/><circle cx="16" cy="16" r="4" fill="#ff8fb0" ${s}/>`,
