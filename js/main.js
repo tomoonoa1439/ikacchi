@@ -1,9 +1,10 @@
 // =========================================================
 //  イカッチ  起動とゲームループ
 // =========================================================
-import { G, load, save, newState, rand, dayKey } from './state.js';
+import { G, bus, load, save, newState, rand, dayKey } from './state.js';
 import { step, catchUp, weatherToday, log } from './sim.js';
-import { render, decorate, say, askName } from './ui.js';
+import { render, decorate, say, askName, handleLink } from './ui.js';
+import { parseLink } from './net.js';
 
 G.state = load() || newState();
 const away = catchUp();
@@ -20,8 +21,10 @@ setTimeout(() => {
   const S = G.state;
   if (away.daily) { log('きょうも あそびに きた'); say(`きょうも きてくれた！ 🐚+5 ／ きょうの てんき：${w.ic}${w.name}`); }
   else if (S.stage === 'egg' && S.egg.hatch === 0) say('イカの たまごが とどいた！ あたためて ふかそう');
-  else if (away.mins > 5 && S.stage !== 'egg') say(away.newMesses ? `るすのあいだに ${away.newMesses}かい もらしちゃった…` : 'おかえり！ まってたよ');
+  else if (away.mins > 5 && S.stage !== 'egg') say(away.newMistakes ? `るすのあいだに おせわミスが ${away.newMistakes}かい…` : away.newMesses ? `るすのあいだに ${away.newMesses}かい もらしちゃった…` : 'おかえり！ まってたよ');
   askName();
+  if (S.travelReady) bus.emit('travel', false);
+  checkHash();
 }, 500);
 
 let tick = 0;
@@ -34,6 +37,16 @@ setInterval(() => {
   render();
   if (tick % 5 === 0) save();
 }, 1000);
+
+// ともだち／プレゼント／ひっこし リンクで ひらかれたとき
+function checkHash() {
+  if (!location.hash || location.hash.length < 4) return;
+  let r = null;
+  try { r = parseLink(location.hash); } catch (e) { say(e.message); }
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  if (r) handleLink(r);
+}
+window.addEventListener('hashchange', checkHash);
 
 window.addEventListener('beforeunload', save);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });

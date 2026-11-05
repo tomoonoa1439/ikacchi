@@ -3,8 +3,8 @@
 //  → オンライン化するときは この action を サーバーへ送れば OK
 // =========================================================
 import { CONFIG, FOODS, HATS, DECOR, FINDS } from './config.js';
-import { G, bus, clamp, rand, pick, dayKey, isNight } from './state.js';
-import { care, addBond, log, weatherToday, stageName } from './sim.js';
+import { G, bus, clamp, rand, pick, dayKey, isNight, newState, migrate } from './state.js';
+import { care, addBond, log, weatherToday, stageName, baseWeight, bondLevel, wake } from './sim.js';
 
 const say = t => bus.emit('say', t);
 const fx = (c, d) => bus.emit('fx', c, d);
@@ -14,7 +14,7 @@ const asleepBlock = () => { if (G.state.sleeping) { say('Zzz…（ねてるよ�
 export function dispatch(type, p = {}) {
   const fn = A[type];
   if (!fn) { console.warn('unknown action', type); return; }
-  if (G.busy && !['cleanOne', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName'].includes(type)) return;
+  if (G.busy && !['cleanOne', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave', 'travel'].includes(type)) return;
   const r = fn(p);
   bus.emit('changed', type);
   return r;
@@ -42,7 +42,10 @@ const A = {
     if (f.price > 0 && !(S.inv.food[id] > 0)) { say('もってないよ… ショップで かえるよ'); return false; }
     if (S.hunger >= 95 && f.hunger > 10 && id !== 'cake') { say('おなか いっぱい…'); return false; }
     if (id === 'snack' && S.hunger < 25) { say('おやつより ごはんが いい…'); return false; }
+    if (f.hunger > 10 && S.discipline < 50 && S.hunger > 30 && Math.random() < .15) { say('いやいや！ たべたくない〜（しつけが たりない？）'); return false; }
     if (f.price > 0) S.inv.food[id]--;
+    S.weight += f.weight || 0;
+    S.fake = false;
     const wasHungry = S.hunger < 50;
     S.hunger = clamp(S.hunger + f.hunger);
     S.bladder = clamp(S.bladder + f.bladder);
@@ -55,14 +58,43 @@ const A = {
   },
   futon() {
     const S = G.state;
+    if (S.sleeping && !S.lightsOff) {           // かってに ねた → でんきを けして おふとんへ
+      S.lightsOff = true; S.pos = 22; S.shells += 1; care('good'); addBond(1);
+      say('でんきを けしたよ。おやすみ…'); return;
+    }
     if (S.sleeping) {
-      S.sleeping = false;
+      wake(S);
       if (S.energy < 50) { S.happy = clamp(S.happy - 5); say('まだ ねむい…'); } else say('おはよう！');
       return;
     }
     if (S.energy > 85 && !isNight()) { say('まだ ねむくないよ！'); return; }
-    S.sleeping = true; S.pos = 22; say('おやすみなさい…');
+    S.sleeping = true; S.lightsOff = true; S.pos = 22; S.fake = false; say('おやすみなさい…');
     if (S.energy < 40 || isNight()) { S.shells += 1; care('good'); addBond(1); }
+  },
+  scold() {
+    const S = G.state;
+    if (asleepBlock()) return;
+    if (S.fake) {
+      S.fake = false; S.discipline = clamp(S.discipline + 25); S.happy = clamp(S.happy - 3); care('good');
+      log(`わがままを しかった（しつけ ${S.discipline}）`);
+      say(S.discipline >= 100 ? '…もう わがまま いわない！' : '…ごめんなさい'); fx('💦');
+    } else {
+      S.happy = clamp(S.happy - 15); addBond(-3); care('bad');
+      say('なんで おこるの…？'); fx('💧'); beep(240, .15);
+    }
+  },
+  travel() {
+    const S = G.state;
+    S.album.unshift({ gen: S.gen, name: S.name || 'イカッチ', form: S.form, hat: S.inv.hat, days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now() });
+    const keep = { player: S.player, shells: S.shells + 20, inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
+                   album: S.album.slice(0, 30), log: S.log, gen: S.gen + 1, rainbowDay: S.rainbowDay, lastDay: S.lastDay };
+    G.state = Object.assign(newState(), keep);
+    G.visitor = null;
+    log(`${keep.gen}だいめの たまごが やってきた`);
+  },
+  importSave({ data }) {
+    G.state = migrate(data); G.state.lastSaved = Date.now(); G.visitor = null;
+    log('ひっこしして きた！');
   },
   toilet() {
     const S = G.state;
@@ -98,13 +130,14 @@ const A = {
     if (S.stage === 'egg') return A.talk();
     if (asleepBlock()) return;
     if (Date.now() - G.lastPet < 2500) { say('くすぐったいよ〜'); return; }
-    G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1);
+    G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1); S.fake = false;
     say(pick(['えへへ', 'なでなで うれしい！', 'すき〜！'])); fx('💗'); bus.emit('bounce'); beep(980, .05);
   },
   playResult({ win }) {
     const S = G.state;
     S.energy = clamp(S.energy - 10); S.hunger = clamp(S.hunger - 5); S.happy = clamp(S.happy + (win ? 25 : 10));
-    care('play'); addBond(win ? 3 : 2);
+    care('play'); addBond(win ? 3 : 2); S.fake = false;
+    S.weight = Math.max(baseWeight(S.stage), S.weight - 1);
     if (win) S.shells += 3;
     say(win ? 'たのしかった〜！' : 'くやしい… もういっかい！'); if (win) fx('🎉');
   },
@@ -116,6 +149,7 @@ const A = {
     if (asleepBlock()) return false;
     if (S.energy < d.energy) { say('つかれてて ほれない…'); return false; }
     S.energy = clamp(S.energy - d.energy); S.hunger = clamp(S.hunger - d.hunger);
+    S.weight = Math.max(baseWeight(S.stage), S.weight - 1);
     return true;
   },
   digSpot() {

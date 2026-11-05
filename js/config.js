@@ -4,7 +4,7 @@
 // =========================================================
 
 export const CONFIG = {
-  version: 2,
+  version: 3,
   saveKey: 'ikacchi-save-v2',
   legacyKey: 'ikacchi-save-v1',
   hatchMinutes: 3,            // ちょうどいい温度で何分ふかすと孵化するか
@@ -22,14 +22,19 @@ export const CONFIG = {
   dailyBonus: 5,
   dig: { spots: 9, tries: 3, energy: 12, hunger: 5 },
   maxFriends: 8,
+  mistakeAfter: 15,           // おせわを ほうっておくと 何分で「おせわミス」になるか
+  fakeCallRate: .06,          // 1分あたりの「わがまま」はっせい確率（しつけ100で なくなる）
+  weightBase: { baby: 5, child: 10, adult: 20 },  // たいじゅう(g) のめやす
+  lifespanMin: 4320,          // おとなに なってからではなく、うまれてから たびだつまでの分（3日）
+  lifespanBondBonus: 240,     // なかよしLv 1ごとに のびる分
 };
 
 // ---- ごはん（price 0 は むりょう・むげん）----
 export const FOODS = [
-  { id: 'plankton', ic: '🦐', name: 'プランクトン',   desc: 'いつでも たべられる', price: 0,  hunger: 15, bladder: 8,  happy: 2  },
-  { id: 'shrimp',   ic: '🍤', name: 'エビ',           desc: 'おなか いっぱい',     price: 3,  hunger: 35, bladder: 18, happy: 6  },
-  { id: 'snack',    ic: '🍬', name: 'うみのおやつ',   desc: 'ごきげん アップ',     price: 2,  hunger: 5,  bladder: 5,  happy: 22 },
-  { id: 'cake',     ic: '🍰', name: 'しんじゅケーキ', desc: 'とくべつな ごちそう', price: 12, hunger: 30, bladder: 12, happy: 40 },
+  { id: 'plankton', ic: '🦐', name: 'プランクトン',   desc: 'いつでも たべられる', price: 0,  hunger: 15, bladder: 8,  happy: 2,  weight: 1  },
+  { id: 'shrimp',   ic: '🍤', name: 'エビ',           desc: 'おなか いっぱい',     price: 3,  hunger: 35, bladder: 18, happy: 6,  weight: 1  },
+  { id: 'snack',    ic: '🍬', name: 'うみのおやつ',   desc: 'ごきげん アップ',     price: 2,  hunger: 5,  bladder: 5,  happy: 22, weight: 2 },
+  { id: 'cake',     ic: '🍰', name: 'しんじゅケーキ', desc: 'とくべつな ごちそう', price: 12, hunger: 30, bladder: 12, happy: 40, weight: 3 },
 ];
 
 // ---- きせかえ（art.js に えが あります）----
@@ -66,7 +71,7 @@ export const FINDS = [
 // ---- おとなの すがた（こどもの ころの おせわで きまる）----
 export const FORMS = {
   surume: { name: 'スルメイカ',   body: '#ffb48a', edge: '#d77a4c', hint: 'ふつうに そだつと' },
-  hotaru: { name: 'ホタルイカ',   body: '#cfdcff', edge: '#6f8de0', glow: true, hint: 'しっぱい すくなく ていねいに おせわすると' },
+  hotaru: { name: 'ホタルイカ',   body: '#cfdcff', edge: '#6f8de0', glow: true, hint: 'ミスなく ていねいに おせわして、しつけも できると' },
   aori:   { name: 'アオリイカ',   body: '#cdeee6', edge: '#5fb8a2', hint: 'たくさん あそぶと' },
   daiou:  { name: 'ダイオウイカ', body: '#ff9a8f', edge: '#c95555', big: true, hint: 'たくさん たべると' },
 };

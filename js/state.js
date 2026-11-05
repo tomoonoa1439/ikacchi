@@ -52,6 +52,11 @@ export function newState() {
     messes: [], sleeping: false, sick: false, sickTimer: 0, pos: 50,
     bond: 0,
     care: { good: 0, bad: 0, feed: 0, play: 0 },
+    // ---- たまごっち要素 ----
+    weight: 5, discipline: 0, mistakes: 0, lightsOff: false,
+    needT: { hunger: 0, mess: 0, light: 0, sick: 0 },
+    fake: false, fakeT: 0, travelReady: false, bornAt: null,
+    gen: 1, album: [],
     // ---- もちもの ----
     shells: 0,
     inv: { food: { shrimp: 1, snack: 1, cake: 0 }, hats: [], hat: null, decor: [], placed: [], finds: {} },
@@ -69,6 +74,8 @@ export function migrate(s) {
   out.player = s.player || base.player;
   out.egg = { ...base.egg, ...(s.egg || {}) };
   out.care = { ...base.care, ...(s.care || {}) };
+  out.needT = { ...base.needT, ...(s.needT || {}) };
+  if (s.v < 3 && out.stage !== 'egg') { out.weight = CONFIG.weightBase[out.stage] || 5; if (out.sleeping) out.lightsOff = true; }
   out.inv = { ...base.inv, ...(s.inv || {}) };
   out.inv.food = { ...base.inv.food, ...((s.inv || {}).food || {}) };
   if (out.stage === 'adult' && !out.form) out.form = 'surume';

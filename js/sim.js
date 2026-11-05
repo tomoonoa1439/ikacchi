@@ -1,12 +1,13 @@
 // =========================================================
-//  時間経過のシミュレーション（成長・進化・てんき など）
+//  時間経過のシミュレーション（成長・進化・おせわミス・寿命 など）
 //  live=false のときは るすの間の計算（ふきだし等は出さない）
 // =========================================================
 import { CONFIG, FORMS, WEATHER } from './config.js';
-import { G, bus, clamp, dayKey, isNight, hashStr } from './state.js';
+import { G, bus, clamp, dayKey, isNight, hour, hashStr } from './state.js';
 
 export const stageInfo = id => CONFIG.stages.find(s => s.id === id);
 const stageByAge = age => CONFIG.stages.find(s => age < s.until);
+export const baseWeight = stage => CONFIG.weightBase[stage] || 5;
 
 export function stageName(S = G.state) {
   if (S.stage === 'egg') return 'たまご';
@@ -21,6 +22,8 @@ export function log(text) {
 export function care(kind, n = 1) { G.state.care[kind] = (G.state.care[kind] || 0) + n; }
 export function addBond(n) { G.state.bond = Math.max(0, G.state.bond + n); }
 export const bondLevel = (b = G.state.bond) => Math.min(10, 1 + Math.floor(b / 20));
+export const lifespan = () => CONFIG.lifespanMin + bondLevel() * CONFIG.lifespanBondBonus;
+export const ageYears = (S = G.state) => Math.floor(S.ageMin / 1440);   // たまごっちと同じ 1日 = 1さい
 
 export function weatherToday(d = new Date()) {
   const r = (hashStr(dayKey(d) + 'ikacchi') % 1000) / 1000;
@@ -30,6 +33,8 @@ export function weatherToday(d = new Date()) {
 }
 
 const say = (live, t) => { if (live) bus.emit('say', t); };
+
+export function wake(S = G.state) { S.sleeping = false; S.lightsOff = false; S.pos = 50; }
 
 export function step(dt, live) {
   const r = CONFIG.rates, S = G.state;
@@ -43,52 +48,99 @@ export function step(dt, live) {
     if (e.hatch >= 100) hatch(live);
     return;
   }
+  if (S.travelReady) return;   // たびだちを まっている間は とまる
 
   S.ageMin += dt;
   const night = isNight();
   S.hunger = clamp(S.hunger - r.hunger * dt * (S.sleeping ? .5 : 1));
 
+  // ---- ねむり ----
   if (S.sleeping) {
-    S.energy = clamp(S.energy + r.sleepGain * dt);
-    if (night) S.happy = clamp(S.happy + .5 * dt);
-    if (S.energy >= 100 && !night) { S.sleeping = false; say(live, 'ふわぁ…よくねた！'); }
+    S.energy = clamp(S.energy + r.sleepGain * dt * (S.lightsOff ? 1 : .5));   // でんきが ついてると よく ねむれない
+    if (night && S.lightsOff) S.happy = clamp(S.happy + .5 * dt);
+    if (S.energy >= 100 && !night) { wake(S); say(live, 'ふわぁ…よくねた！'); }
   } else {
     S.energy = clamp(S.energy - r.energy * dt * (night ? 1.6 : 1));
     if (S.energy <= 0) {
-      S.sleeping = true; S.happy = clamp(S.happy - 10); S.pos = 50; care('bad');
+      S.sleeping = true; S.lightsOff = false; S.pos = 50; S.happy = clamp(S.happy - 10); care('bad');
       log('つかれて ゆかで ねちゃった'); say(live, '…ぐぅ（ゆかで ねちゃった）');
+    } else if (night && hour() >= 21 && S.energy < 70 && Math.random() < dt * .15) {
+      // たまごっちと同じく よるは 自分で ねる → でんきを けしてあげる
+      S.sleeping = true; S.lightsOff = false; S.pos = 50; S.fake = false;
+      log('ねむくなって ねちゃった'); say(live, 'ねむくなっちゃった… 💡でんきを けしてね');
     }
   }
 
+  // ---- トイレ・よごれ ----
   S.bladder = clamp(S.bladder + r.bladder * dt * (S.sleeping ? .35 : 1));
   if (S.bladder >= 100) accident(live);
-
   S.clean = clamp(S.clean - r.dirtPerMess * dt * S.messes.length + (S.messes.length ? 0 : 2 * dt));
 
+  // ---- たいじゅう ----
+  const over = S.weight - baseWeight(S.stage);
+
+  // ---- ごきげん ----
   let down = r.happy;
   if (S.hunger < 20) down += 4;
   if (S.clean < 40) down += 3;
   if (S.sick) down += 4;
   if (S.messes.length) down += 1;
+  if (over > 10) down += 1;
+  if (S.sleeping && !S.lightsOff) down += 1;
   S.happy = clamp(S.happy - down * dt);
 
-  if (!S.sick && (S.hunger <= 0 || S.clean <= 10)) {
+  // ---- びょうき ----
+  if (!S.sick && (S.hunger <= 0 || S.clean <= 10 || over > 20)) {
     S.sickTimer += dt;
     if (S.sickTimer > 3) {
       S.sick = true; S.sickTimer = 0; care('bad', 2);
-      log('ぐあいが わるくなった'); say(live, 'うぅ…ぐあいが わるい…');
+      log(over > 20 ? 'ふとりすぎて ぐあいが わるくなった' : 'ぐあいが わるくなった');
+      say(live, 'うぅ…ぐあいが わるい…');
     }
   } else if (!S.sick) S.sickTimer = Math.max(0, S.sickTimer - dt);
 
+  // ---- わがまま（しつけ） ----
+  if (S.fake) { S.fakeT += dt; if (S.fakeT > 10) S.fake = false; }
+  else if (!S.sleeping && S.stage !== 'baby' && S.discipline < 100 && Math.random() < CONFIG.fakeCallRate * dt) {
+    S.fake = true; S.fakeT = 0; say(live, 'ねぇねぇ！ かまって〜！');
+  }
+
+  // ---- おせわミス：よびだしを ほうっておくと たまる ----
+  const needs = { hunger: S.hunger < 20, mess: S.messes.length > 0, light: S.sleeping && !S.lightsOff, sick: S.sick };
+  for (const k in needs) {
+    if (needs[k]) {
+      S.needT[k] = (S.needT[k] || 0) + dt;
+      if (S.needT[k] >= CONFIG.mistakeAfter) { S.needT[k] = 0; mistake(k, live); }
+    } else S.needT[k] = 0;
+  }
+
+  // ---- せいちょう・じゅみょう ----
   const st = stageByAge(S.ageMin);
   if (st.id !== S.stage) grow(st, live);
+  if (S.stage === 'adult' && S.ageMin >= lifespan()) {
+    S.travelReady = true;
+    log(`${S.name || 'イカッチ'}は たびだちの ときを むかえた`);
+    bus.emit('travel', live);
+  }
+}
+
+const MISTAKE_TEXT = { hunger: 'おなかが すいたまま ほうっておかれた', mess: 'よごれたまま ほうっておかれた', light: 'でんきが ついたまま ねていた', sick: 'びょうきのまま ほうっておかれた' };
+function mistake(kind, live) {
+  const S = G.state;
+  S.mistakes++; care('bad'); S.happy = clamp(S.happy - 5);
+  log(`おせわミス：${MISTAKE_TEXT[kind]}`);
+  if (live) bus.emit('beep', 200, .25);
 }
 
 export function hatch(live) {
   const S = G.state;
-  Object.assign(S, { stage: 'baby', ageMin: 0, hunger: 60, energy: 80, bladder: 10, happy: 80, clean: 100 });
+  Object.assign(S, {
+    stage: 'baby', ageMin: 0, hunger: 60, energy: 80, bladder: 10, happy: 80, clean: 100,
+    weight: baseWeight('baby'), discipline: 0, mistakes: 0, sleeping: false, lightsOff: false,
+    fake: false, fakeT: 0, needT: { hunger: 0, mess: 0, light: 0, sick: 0 }, bornAt: Date.now(),
+  });
   S.shells += 5;
-  log('たまごから うまれた！');
+  log(S.gen > 1 ? `${S.gen}だいめの イカが うまれた！` : 'たまごから うまれた！');
   if (live) { say(live, 'ぱかっ！ うまれたよ！'); bus.emit('fx', '🐣'); bus.emit('fx', '✨', 30); bus.emit('beep', 990, .15); }
   bus.emit('hatched', live);
 }
@@ -103,19 +155,20 @@ function accident(live) {
   if (live) { say(live, S.sleeping ? 'あっ… おねしょ しちゃった…' : 'あっ… もらしちゃった…'); bus.emit('beep', 220, .2); }
 }
 
-export function decideForm(c) {
-  if (c.bad <= 1 && c.good >= 8) return 'hotaru';
-  if (c.feed >= 10) return 'daiou';
+export function decideForm(c, S = G.state) {
+  if (c.bad <= 1 && c.good >= 8 && S.discipline >= 50) return 'hotaru';
+  if (c.feed >= 10 || S.weight - baseWeight('child') > 8) return 'daiou';
   if (c.play >= 4) return 'aori';
   return 'surume';
 }
 
 function grow(st, live) {
-  const S = G.state;
+  const S = G.state, prev = S.stage;
   S.stage = st.id;
+  S.weight += baseWeight(st.id) - baseWeight(prev);
   S.shells += 10;
   if (st.id === 'child') S.care = { good: 0, bad: 0, feed: 0, play: 0 };
-  if (st.id === 'adult') S.form = decideForm(S.care);
+  if (st.id === 'adult') S.form = decideForm(S.care, S);
   const nm = stageName(S);
   log(`${nm}に せいちょうした！`);
   if (live) { say(live, `${nm}に せいちょうした！`); bus.emit('fx', '✨'); bus.emit('fx', '🎉', 30); bus.emit('beep', 880, .15); }
@@ -125,12 +178,12 @@ function grow(st, live) {
 export function catchUp() {
   const S = G.state;
   const mins = Math.min((Date.now() - S.lastSaved) / 60000, CONFIG.maxOfflineMinutes);
-  const before = S.messes.length;
+  const before = S.messes.length, mBefore = S.mistakes;
   for (let t = 0; t < mins; t += 1) step(Math.min(1, mins - t), false);
   let daily = false;
   if (S.lastDay !== dayKey()) {
     S.lastDay = dayKey(); S.shells += CONFIG.dailyBonus; daily = true;
     S.friendPlay = {};
   }
-  return { mins, newMesses: Math.max(0, S.messes.length - before), daily };
+  return { mins, newMesses: Math.max(0, S.messes.length - before), newMistakes: S.mistakes - mBefore, daily };
 }

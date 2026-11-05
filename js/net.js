@@ -35,18 +35,33 @@ export function unpack(prefix, code) {
   try { return fromB64(parts[1]); } catch (e) { throw new Error('コードが よめなかった'); }
 }
 
+// ---- リンク方式（タップするだけで ともだち／プレゼント／ひっこし）----
+//   #f=... ともだちカード   #g=... プレゼント   #m=... ひっこし（セーブデータ）
+export const linkBase = () => location.origin + location.pathname;
+export function makeLink(kind, obj) { const body = toB64(obj); return `${linkBase()}#${kind}=${body}.${check(kind + body)}`; }
+export function parseLink(text) {
+  const m = String(text || '').replace(/\s+/g, '').match(/#([fgm])=([A-Za-z0-9_-]+)\.([0-9a-z]{3})/);
+  if (!m) return null;
+  if (check(m[1] + m[2]) !== m[3]) throw new Error('リンクが とちゅうで きれてるかも');
+  try { return { kind: m[1], data: fromB64(m[2]) }; } catch (e) { throw new Error('リンクが よめなかった'); }
+}
+
 export class LocalCodeAdapter {
   name = 'local';
   label = 'コードこうかん';
   async shareProfile(card) { return pack('IKA1', card); }
   async lookupFriend(input) {
-    const c = unpack('IKA1', input);
+    const l = parseLink(input);
+    if (l && l.kind !== 'f') throw new Error('それは ともだちリンクじゃ ないみたい');
+    const c = l ? l.data : unpack('IKA1', input);
     if (!c.pid || !c.name) throw new Error('カードの なかみが たりない');
     return c;
   }
   async sendGift(gift) { return pack('GIFT1', gift); }
   async receiveGift(input) {
-    const g = unpack('GIFT1', input);
+    const l = parseLink(input);
+    if (l && l.kind !== 'g') throw new Error('それは プレゼントリンクじゃ ないみたい');
+    const g = l ? l.data : unpack('GIFT1', input);
     if (!g.gid || !g.kind || !g.id) throw new Error('プレゼントの なかみが たりない');
     return g;
   }

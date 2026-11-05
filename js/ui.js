@@ -3,10 +3,10 @@
 // =========================================================
 import { CONFIG, FOODS, HATS, DECOR, FINDS, FORMS } from './config.js';
 import { G, bus, rand, pick, dayKey, isNight, timeOfDay, TOD_LABEL, save, newState } from './state.js';
-import { stageInfo, stageName, bondLevel, weatherToday } from './sim.js';
+import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, lifespan } from './sim.js';
 import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
-import { net } from './net.js';
+import { net, makeLink } from './net.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -42,6 +42,8 @@ export function beep(f = 600, d = .08) {
 bus.on('say', say); bus.on('fx', fx); bus.on('beep', beep); bus.on('bounce', bounce);
 bus.on('changed', () => { render(); save(); });
 bus.on('hatched', live => setTimeout(askName, live ? 1200 : 0));
+bus.on('travel', () => setTimeout(openTravel, 300));
+bus.on('link', r => setTimeout(() => handleLink(r), 300));
 
 /* ---------------- modal ---------------- */
 let mh = {}, modalLock = false;
@@ -58,6 +60,14 @@ $('modalBack').addEventListener('click', e => { if (e.target.id === 'modalBack' 
 const closeBtn = (t = 'とじる') => `<div class="row"><button class="btn gray" data-a="close">${t}</button></div>`;
 const tabs = (list, cur) => `<div class="tabs">${list.map(([id, t]) => `<button class="tab ${id === cur ? 'on' : ''}" data-a="tab" data-t="${id}">${t}</button>`).join('')}</div>`;
 
+// スマホなら 共有シート（LINE など）、パソコンなら コピー
+async function shareLink(url, text) {
+  if (navigator.share) {
+    try { await navigator.share({ title: 'イカッチ', text, url }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  copyCode(url);
+}
 function copyCode(code) {
   const ta = $('codeOut');
   const fallback = () => { if (ta) { ta.focus(); ta.select(); } say('コードを えらんで コピーしてね'); };
@@ -77,9 +87,46 @@ function openFood() {
   });
 }
 
-/* ---------------- あそぶ：どっちむく？ ---------------- */
-function openGame() {
+/* ---------------- あそぶ ---------------- */
+function openPlay() {
   if (G.state.energy < 15) { say('つかれてて あそべない…'); return; }
+  showModal(`<h3>🎾 なにで あそぶ？</h3><div class="choices">
+    <button class="choice" data-a="g1"><span class="ic">👀</span><span class="grow">どっちむく？<small>イカが むく ほうを あてよう</small></span></button>
+    <button class="choice" data-a="g2"><span class="ic">🎯</span><span class="grow">スミでっぽう<small>タイミングよく スミを とばそう</small></span></button>
+  </div>${closeBtn('やめる')}`, { g1: openGame, g2: openInk });
+}
+
+/* スミでっぽう：うごく ねらいが まとに かさなったら タップ */
+function openInk() {
+  let shot = 0, hits = 0, marks = [], raf = 0, x = 0, dir = 1, zone = 0;
+  const newZone = () => { zone = 15 + Math.random() * 60; };
+  const speed = () => 1.1 + shot * .35;
+  function draw(msg) {
+    showModal(`<h3>🎯 スミでっぽう</h3><p>${msg}</p>
+      <div class="ink"><div class="zone" style="left:${zone}%"></div><div class="aim" id="aim"></div></div>
+      <div class="score">${marks.join('') || '・・・'}</div>
+      <div class="row"><button class="btn big" data-a="fire">🦑 スミ！</button></div>`, { fire }, true);
+  }
+  function loop() {
+    x += dir * speed(); if (x > 100) { x = 100; dir = -1; } if (x < 0) { x = 0; dir = 1; }
+    const a = $('aim'); if (a) a.style.left = x + '%';
+    raf = requestAnimationFrame(loop);
+  }
+  function fire() {
+    cancelAnimationFrame(raf);
+    const ok = x >= zone - 2 && x <= zone + 14;
+    shot++; if (ok) hits++; marks.push(ok ? '🎯' : '💨'); beep(ok ? 900 : 300, .08);
+    if (shot < 3) { newZone(); draw(ok ? 'めいちゅう！' : 'おしい！'); raf = requestAnimationFrame(loop); return; }
+    const win = hits >= 2;
+    dispatch('playResult', { win });
+    showModal(`<h3>${win ? '🎉 めいちゅう！' : 'またあそぼ！'}</h3><div class="score">${marks.join('')}</div>
+      <p>ごきげん +${win ? 25 : 10}${win ? ' ／ 🐚+3' : ''} ／ たいじゅう −1g</p>${closeBtn()}`);
+  }
+  newZone(); draw('ピンクの まとに かさなったら スミ！（3かい）'); raf = requestAnimationFrame(loop);
+}
+
+/* どっちむく？ */
+function openGame() {
   let round = 0, wins = 0, marks = [];
   const draw = (msg = '') => showModal(`<h3>🎾 どっちに むくかな？</h3>
     <p>${msg || 'イカが むく ほうを あてよう！（3かい）'}</p>
@@ -173,7 +220,13 @@ function openZukan(tab = zukanTab) {
       <div class="choice ${S.form === id ? 'cur' : ''}"><span class="swatch" style="background:${f.body};border-color:${f.edge}"></span>
       <span class="grow">${f.name}${S.form === id ? ' ← いま' : ''}<small>${f.hint}</small></span></div>`).join('')}</div>`;
   }
-  showModal(`<h3>📖 ずかん</h3>${tabs([['finds', 'みつけたもの'], ['forms', 'イカのすがた']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
+  if (tab === 'album') {
+    body = S.album.length ? `<div class="choices">${S.album.map(a => { const f = FORMS[a.form] || FORMS.surume; return `
+      <div class="choice"><span class="swatch" style="background:${f.body};border-color:${f.edge}"></span>
+      <span class="grow">${a.gen}だいめ ${esc(a.name)}<small>${f.name}・${a.days}にち いきた・なかよしLv.${a.bond}・ミス${a.mistakes}</small></span></div>`; }).join('')}</div>`
+      : '<p>まだ たびだった イカは いないよ<br>おとなに なって しばらくすると、ひろい うみへ たびだつよ</p>';
+  }
+  showModal(`<h3>📖 ずかん</h3>${tabs([['finds', 'みつけたもの'], ['forms', 'すがた'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
     tab: el => openZukan(el.dataset.t),
     sell: el => { dispatch('sell', { id: el.dataset.id }); openZukan(); },
   });
@@ -185,23 +238,29 @@ function openDiary() {
   showModal(`<h3>📔 にっき</h3><div class="scroll log">${S.log.length ? S.log.map(l => `<div><span>${fmt(l.t)}</span>${esc(l.text)}</div>`).join('') : '<p>まだ なにも ないよ</p>'}</div>${closeBtn()}`);
 }
 
-/* ---------------- ともだち（非同期マルチ） ---------------- */
+/* ---------------- ともだち（リンクで かんたん） ---------------- */
 let friendTab = 'card', lastCode = '';
+function needOwnerName(S) {
+  const el = $('ownerName'); const nm = el ? el.value.trim() : S.player.name;
+  if (nm !== S.player.name) dispatch('setPlayerName', { name: nm });
+  if (!S.player.name) { say('さきに あなたの なまえを いれてね'); return false; }
+  return true;
+}
 function openFriends(tab = friendTab) {
   friendTab = tab;
   const S = G.state;
   let body = '';
   if (tab === 'card') {
-    body = `<p>じぶんの イカの カードを つくって、LINE や メールで ともだちに おくろう。<br>アカウントは いらないよ。</p>
+    body = `<p>ともだちリンクを LINE などで おくろう。<br>あいてが タップするだけで ともだちに なれるよ！</p>
       <label class="lbl">あなたの なまえ</label>
       <div class="inrow"><input id="ownerName" maxlength="10" value="${esc(S.player.name)}" placeholder="なまえ"><button class="btn sm" data-a="saveName">ほぞん</button></div>
-      <div class="row"><button class="btn" data-a="mkCard">🪪 カードを つくる</button></div>
+      <div class="row"><button class="btn" data-a="shareCard">🔗 ともだちリンクを おくる</button></div>
       ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">📋 コピー</button></div>` : ''}
-      <p class="note">プレイヤーID：${S.player.id}</p>`;
+      <p class="note">イカが せいちょうしたら、もういちど おくると すがたが かわるよ<br>プレイヤーID：${S.player.id}</p>`;
   }
   if (tab === 'friends') {
-    body = `<p>ともだちの カードを はりつけると、あそびに きてくれるよ</p>
-      <textarea id="codeIn" placeholder="IKA1. ではじまる コード"></textarea>
+    body = `<p>もらった リンクは タップするだけで OK。<br>うまく いかないときは ここに はりつけてね</p>
+      <textarea id="codeIn" placeholder="ともだちリンク または IKA1. コード"></textarea>
       <div class="row"><button class="btn" data-a="addF">🏠 あそびに きてもらう</button></div>
       <div class="choices">${S.friends.length ? S.friends.map(f => `
         <div class="choice"><span class="ic">🦑</span><span class="grow">${esc(f.name)}<small>${esc(f.owner || 'だれか')}の ${esc(f.title || '')}${S.friendPlay[f.pid] === dayKey() ? ' ・きょう あそんだ' : ''}</small></span>
@@ -213,30 +272,27 @@ function openFriends(tab = friendTab) {
       ...FOODS.filter(f => f.price > 0 && S.inv.food[f.id] > 0).map(f => ({ kind: 'food', id: f.id, ic: f.ic, name: f.name, n: S.inv.food[f.id] })),
       ...FINDS.filter(f => S.inv.finds[f.id] > 1).map(f => ({ kind: 'find', id: f.id, ic: f.ic, name: f.name, n: S.inv.finds[f.id] - 1 })),
     ];
-    body = `<p>もちものを つつんで コードで おくれるよ</p>
+    body = `<p>もちものを つつんで リンクで おくれるよ</p>
       <select id="giftItem">${items.length ? items.map(i => `<option value="${i.kind}:${i.id}">${i.ic} ${i.name}（${i.n}）</option>`).join('') : '<option value="">おくれる ものが ないよ</option>'}</select>
       <select id="giftTo"><option value="">だれでも うけとれる</option>${S.friends.map(f => `<option value="${f.pid}">${esc(f.owner || f.name)} あて</option>`).join('')}</select>
-      <div class="row"><button class="btn" data-a="mkGift" ${items.length ? '' : 'disabled'}>🎁 つつむ</button></div>
-      ${lastCode.startsWith('GIFT1') ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">📋 コピー</button></div>` : ''}
-      <hr><p>もらった コードを はりつけて うけとる</p>
-      <textarea id="giftIn" placeholder="GIFT1. ではじまる コード"></textarea>
+      <div class="row"><button class="btn" data-a="mkGift" ${items.length ? '' : 'disabled'}>🎁 つつんで おくる</button></div>
+      ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">📋 コピー</button></div>` : ''}
+      <hr><p>もらった プレゼントリンクは タップするだけで とどくよ。<br>うまく いかないときは ここに はりつけてね</p>
+      <textarea id="giftIn" placeholder="プレゼントリンク または GIFT1. コード"></textarea>
       <div class="row"><button class="btn" data-a="recv">📦 うけとる</button></div>`;
   }
-  showModal(`<h3>🤝 ともだち</h3>${tabs([['card', 'カード'], ['friends', 'あそびにくる'], ['gift', 'プレゼント']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
+  showModal(`<h3>🤝 ともだち</h3>${tabs([['card', 'リンク'], ['friends', 'ともだち'], ['gift', 'プレゼント']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
     tab: el => { lastCode = ''; openFriends(el.dataset.t); },
     saveName: () => { dispatch('setPlayerName', { name: $('ownerName').value.trim() }); say('なまえを ほぞんしたよ'); openFriends(); },
-    mkCard: async () => {
-      const nm = $('ownerName').value.trim();
-      if (nm !== S.player.name) dispatch('setPlayerName', { name: nm });
-      if (!S.player.name) { say('さきに なまえを いれてね'); return; }
-      lastCode = await net.shareProfile(makeCard()); openFriends();
+    shareCard: async () => {
+      if (!needOwnerName(S)) return;
+      lastCode = makeLink('f', makeCard()); openFriends();
+      await shareLink(lastCode, `${S.player.name}の イカ「${S.name || 'イカッチ'}」と ともだちに なろう！ タップしてね🦑`);
     },
     copy: () => copyCode(lastCode),
     addF: async () => {
-      try {
-        const card = await net.lookupFriend($('codeIn').value);
-        if (dispatch('addFriend', { card })) { dispatch('inviteFriend', { pid: card.pid }); closeModal(); }
-      } catch (e) { say(e.message); beep(260, .1); }
+      try { const card = await net.lookupFriend($('codeIn').value); acceptFriend(card); }
+      catch (e) { say(e.message); beep(260, .1); }
     },
     inv: el => { dispatch('inviteFriend', { pid: el.dataset.pid }); closeModal(); },
     rmF: el => { dispatch('removeFriend', { pid: el.dataset.pid }); openFriends(); },
@@ -244,18 +300,102 @@ function openFriends(tab = friendTab) {
       const [kind, id] = $('giftItem').value.split(':'); if (!id) return;
       const gift = dispatch('makeGift', { kind, id, to: $('giftTo').value });
       if (!gift) return;
-      lastCode = await net.sendGift(gift); save(); openFriends('gift');
-      say('プレゼントを つつんだよ！ コードを おくってね');
+      lastCode = makeLink('g', gift); save(); openFriends('gift');
+      const item = (kind === 'food' ? FOODS : FINDS).find(x => x.id === id);
+      await shareLink(lastCode, `イカッチの プレゼントだよ🎁（${item.name}）タップして うけとってね`);
     },
     recv: async () => {
-      try {
-        const gift = await net.receiveGift($('giftIn').value);
-        const r = dispatch('receiveGift', { gift });
-        if (r.ok) { closeModal(); say(`${gift.fromName || 'ともだち'}から ${r.item.ic}${r.item.name} が とどいた！`); }
-        else { say(r.msg); beep(260, .1); }
-      } catch (e) { say(e.message); beep(260, .1); }
+      try { acceptGift(await net.receiveGift($('giftIn').value)); }
+      catch (e) { say(e.message); beep(260, .1); }
     },
   });
+}
+
+function acceptFriend(card) {
+  const S = G.state;
+  const isNew = !S.friends.some(f => f.pid === card.pid);
+  if (!dispatch('addFriend', { card })) return;
+  dispatch('inviteFriend', { pid: card.pid });
+  showModal(`<h3>🎉 ${isNew ? 'ともだちに なった！' : 'ともだちが きた！'}</h3>
+    <p>${esc(card.owner || 'ともだち')}の「${esc(card.name)}」が あそびに きたよ</p>
+    <p>あなたの リンクも おくりかえす？</p>
+    <div class="row"><button class="btn" data-a="back">🔗 おくりかえす</button></div>${closeBtn('あとで')}`, {
+    back: () => openFriends('card'),
+  });
+}
+function acceptGift(gift) {
+  const r = dispatch('receiveGift', { gift });
+  if (r.ok) { closeModal(); say(`${gift.fromName || 'ともだち'}から ${r.item.ic}${r.item.name} が とどいた！`); }
+  else { say(r.msg); beep(260, .1); }
+}
+
+// URL の #f= #g= #m= で ひらかれたとき
+export function handleLink(r) {
+  if (r.kind === 'f') {
+    if (!r.data || !r.data.pid) return say('リンクが よめなかった');
+    acceptFriend(r.data);
+  }
+  if (r.kind === 'g') acceptGift(r.data);
+  if (r.kind === 'm') {
+    const d = r.data;
+    showModal(`<h3>📦 ひっこし</h3><p>「${esc(d.name || 'たまご')}」（${d.gen || 1}だいめ）の データを よみこみます。<br><b>いまの この ばしょの データは きえます。</b></p>
+      <div class="row"><button class="btn gray" data-a="close">やめる</button><button class="btn" data-a="ok">ひっこす</button></div>`, {
+      ok: () => { dispatch('importSave', { data: d }); closeModal(); say('ひっこし かんりょう！ また よろしくね'); },
+    }, true);
+  }
+}
+
+/* ---------------- ひっこし（きしゅへんこう） ---------------- */
+function openMove() {
+  const S = G.state;
+  showModal(`<h3>📦 ひっこし</h3>
+    <p>スマホを かえるときは、ひっこしリンクを じぶんに おくって、あたらしい スマホで ひらいてね。<br>アカウントは いらないよ。</p>
+    <div class="row"><button class="btn" data-a="mk">📦 ひっこしリンクを つくる</button></div>
+    ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">📋 コピー</button></div>` : ''}
+    <p class="note">⚠️ このリンクを ひとに わたすと、あなたの イカを コピーされちゃうよ</p>${closeBtn()}`, {
+    mk: async () => {
+      const data = { ...S, log: S.log.slice(0, 10) };
+      lastCode = makeLink('m', data); openMove();
+      await shareLink(lastCode, 'イカッチの ひっこしリンク（じぶん用）');
+    },
+    copy: () => copyCode(lastCode),
+  });
+}
+
+/* ---------------- しらべる（たまごっちの ステータス画面） ---------------- */
+function openCheck() {
+  const S = G.state, base = baseWeight(S.stage), over = S.weight - base;
+  const hearts = v => '❤️'.repeat(Math.round(v / 25)) + '🤍'.repeat(4 - Math.round(v / 25));
+  const left = Math.max(0, lifespan() - S.ageMin);
+  showModal(`<h3>🔍 しらべる</h3>
+    <div class="check">
+      <div><span>なまえ</span><b>${esc(S.name || 'イカッチ')}（${S.gen}だいめ）</b></div>
+      <div><span>すがた</span><b>${stageName(S)}</b></div>
+      <div><span>ねんれい</span><b>${ageYears(S)}さい <small>（うまれて ${S.ageMin < 60 ? Math.floor(S.ageMin) + 'ふん' : (S.ageMin / 60).toFixed(1) + 'じかん'}）</small></b></div>
+      <div><span>たいじゅう</span><b>${S.weight}g ${over > 10 ? '<em>ふとりぎみ</em>' : ''}</b></div>
+      <div><span>おなか</span><b>${hearts(S.hunger)}</b></div>
+      <div><span>ごきげん</span><b>${hearts(S.happy)}</b></div>
+      <div><span>しつけ</span><b><span class="bar sm"><i style="width:${S.discipline}%;background:var(--accent)"></i></span> ${S.discipline}%</b></div>
+      <div><span>なかよし</span><b>Lv.${bondLevel()}</b></div>
+      <div><span>おせわミス</span><b>${S.mistakes}かい</b></div>
+      ${S.stage === 'child' ? `<div><span>こども期の きろく</span><b><small>おせわ${S.care.good}・ミス${S.care.bad}・ごはん${S.care.feed}・あそび${S.care.play}</small></b></div>` : ''}
+      ${S.stage === 'adult' ? `<div><span>たびだちまで</span><b>あと ${(left / 60).toFixed(1)}じかん</b></div>` : ''}
+    </div>
+    <p class="note">💢が でたら わがまま。しかって しつけよう<br>💡が でたら でんきを けしてあげよう</p>${closeBtn()}`);
+}
+
+/* ---------------- たびだち（せだいこうたい） ---------------- */
+function openTravel() {
+  const S = G.state;
+  if (!S.travelReady) return;
+  const f = FORMS[S.form] || FORMS.surume;
+  showModal(`<h3>🌊 たびだちの とき</h3>
+    <p>りっぱな ${f.name}に そだった「${esc(S.name || 'イカッチ')}」は、<br>ひろい うみへ たびだつ ときが きたみたい。</p>
+    <p>いままで ありがとう！<br>アルバムに のこして、つぎの たまごを うけとろう。</p>
+    <p class="note">もちもの・かいがら・ともだちは そのまま。🐚+20</p>
+    <div class="row"><button class="btn" data-a="go">👋 みおくる</button></div>`, {
+    go: () => { const nm = S.name; dispatch('travel'); closeModal(); say(`${nm || 'イカッチ'}、げんきでね！ つぎの たまごが とどいたよ`); fx('🥚'); },
+  }, true);
 }
 
 function openVisitor() {
@@ -284,6 +424,7 @@ $('resetBtn').onclick = () => showModal(`<h3>🥚 さいしょから？</h3><p>�
   <div class="row"><button class="btn gray" data-a="close">やめる</button><button class="btn" data-a="reset">あたらしい たまご</button></div>`, {
   reset: () => { const keep = G.state.player; G.state = newState(); G.state.player = keep; G.visitor = null; closeModal(); say('あたらしい たまごが とどいた！'); render(); save(); },
 });
+$('moveBtn').onclick = () => openMove();
 $('speedBtn').onclick = () => { G.speed = G.speed === 1 ? 10 : G.speed === 10 ? 60 : 1; $('speedBtn').textContent = `⏩ はやさ ×${G.speed}`; };
 $('soundBtn').onclick = () => { G.sound = !G.sound; $('soundBtn').textContent = G.sound ? '🔊 おと ON' : '🔈 おと OFF'; };
 
@@ -299,7 +440,9 @@ const LIFE_ACTIONS = [
   { k: 'toilet', ic: '🚽', t: 'トイレ' },
   { k: 'clean', ic: '🧽', t: 'そうじ' },
   { k: 'play', ic: '🎾', t: 'あそぶ' },
+  { k: 'scold', ic: '😤', t: 'しかる' },
   { k: 'medicine', ic: '💊', t: 'おくすり' },
+  { k: 'check', ic: '🔍', t: 'しらべる' },
 ];
 const MENU = [
   { k: 'shop', ic: '🛍️', t: 'ショップ', fn: () => openShop() },
@@ -315,7 +458,8 @@ $('actions').addEventListener('click', e => {
   beep(520, .05);
   const k = b.dataset.k;
   if (k === 'feed') { if (G.state.sleeping) say('Zzz…（ねてるよ）'); else openFood(); }
-  else if (k === 'play') { if (G.state.sleeping) say('Zzz…（ねてるよ）'); else openGame(); }
+  else if (k === 'play') { if (G.state.sleeping) say('Zzz…（ねてるよ）'); else openPlay(); }
+  else if (k === 'check') openCheck();
   else dispatch(k);
 });
 $('messes').addEventListener('click', e => { const m = e.target.closest('.mess'); if (m) dispatch('cleanOne', { i: +m.dataset.i }); });
@@ -341,7 +485,7 @@ function ensureSquid(host, cls) {
   return host.firstChild;
 }
 
-let actionMode = '';
+let actionMode = '', lastNeed = '';
 export function render() {
   const S = G.state, egg = S.stage === 'egg', w = weatherToday(), tod = timeOfDay();
   const d = new Date();
@@ -367,7 +511,8 @@ export function render() {
     wrap.style.width = (200 * scaleOf(S.stage, S.form)) + 'px';
     wrap.style.left = S.pos + '%';
     wrap.classList.toggle('sleeping', S.sleeping);
-    wrap.classList.toggle('squirm', !S.sleeping && !G.busy && S.bladder > 70);
+    wrap.classList.toggle('inbed', S.sleeping && S.lightsOff);
+    wrap.classList.toggle('squirm', !S.sleeping && !G.busy && (S.bladder > 70 || S.fake));
     wrap.classList.toggle('glow', S.stage === 'adult' && !!FORMS[S.form]?.glow);
     const key = [S.stage, m, S.form, S.inv.hat].join('|');
     if (wrap.dataset.key !== key) { wrap.querySelector('.squid-inner').innerHTML = squidSVG(S.stage, m, S.form, S.inv.hat); wrap.dataset.key = key; }
@@ -393,14 +538,20 @@ export function render() {
   // need bubble
   let n = '';
   if (egg) { const e = S.egg; n = e.warmth < CONFIG.warmRange[0] ? '🥶' : e.warmth > CONFIG.warmRange[1] ? '🥵' : e.water < 30 ? '💧' : ''; }
-  else if (!S.sleeping) n = S.sick ? '💊' : S.bladder > 70 ? '🚽' : S.hunger < 30 ? '🍤' : S.messes.length ? '🧽' : S.energy < 25 ? '💤' : S.happy < 30 ? '🎾' : '';
+  else if (S.travelReady) n = '🌊';
+  else if (S.sleeping) n = S.lightsOff ? '' : '💡';
+  else n = S.sick ? '💊' : S.bladder > 70 ? '🚽' : S.hunger < 30 ? '🍤' : S.messes.length ? '🧽' : S.fake ? '💢' : S.energy < 25 ? '💤' : S.happy < 30 ? '🎾' : '';
+  // よびだし音（あたらしい よびだしが でたら ピピッ）
+  if (n && n !== lastNeed && !egg) { beep(1320, .07); setTimeout(() => beep(1320, .07), 140); }
+  lastNeed = n;
+  $('call').classList.toggle('on', !!n && !egg);
   const need = $('need'), sc = scaleOf(S.stage, S.form);
   need.textContent = n; need.classList.toggle('show', !!n);
   need.style.left = `calc(${egg ? 50 : S.pos}% + ${40 * sc + 10}px)`;
   need.style.bottom = `calc(13% + ${200 * sc}px)`;
 
   $('messes').innerHTML = S.messes.map((m, i) => `<div class="mess" data-i="${i}" style="left:${m.x}%"></div>`).join('');
-  $('dark').classList.toggle('on', !egg && S.sleeping);
+  $('dark').classList.toggle('on', !egg && S.sleeping && S.lightsOff);
 
   // status
   if (egg) {
@@ -410,7 +561,7 @@ export function render() {
   } else {
     $('petName').textContent = S.name || 'イカッチ';
     const age = S.ageMin < 60 ? `${Math.floor(S.ageMin)}ふん` : `${Math.floor(S.ageMin / 60)}じかん`;
-    $('petInfo').textContent = `${stageName(S)}・うまれて ${age}${S.sick ? '・びょうき' : ''}`;
+    $('petInfo').textContent = `${S.gen > 1 ? S.gen + 'だいめ・' : ''}${stageName(S)}・${ageYears(S)}さい（${age}）・${S.weight}g${S.sick ? '・びょうき' : ''}`;
     $('bond').textContent = `💗 なかよし Lv.${bondLevel()}`;
   }
   $('meters').innerHTML = egg
@@ -426,12 +577,14 @@ export function render() {
   const mode = egg ? 'egg' : 'life';
   if (actionMode !== mode) {
     actionMode = mode;
+    $('actions').className = 'actions ' + (egg ? 'egg' : 'life');
     $('actions').innerHTML = (egg ? EGG_ACTIONS : LIFE_ACTIONS).map(a => `<button class="act" data-k="${a.k}"><span class="ic">${a.ic}</span><span class="t">${a.t}</span></button>`).join('');
   }
   if (!egg) {
     const q = k => document.querySelector(`.act[data-k="${k}"]`);
     q('futon').classList.toggle('on', S.sleeping);
-    q('futon').querySelector('.t').textContent = S.sleeping ? 'おこす' : 'おふとん';
+    q('futon').querySelector('.t').textContent = S.sleeping ? (S.lightsOff ? 'おこす' : 'でんき') : 'おふとん';
+    q('futon').querySelector('.ic').textContent = S.sleeping && !S.lightsOff ? '💡' : '🛏️';
     q('medicine').disabled = !S.sick;
   }
   document.querySelector('.mbtn[data-k="dig"]').disabled = egg;
