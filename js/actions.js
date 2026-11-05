@@ -25,14 +25,14 @@ const A = {
   warm() {
     const e = G.state.egg;
     e.warmth = clamp(e.warmth + 22);
-    say(e.warmth > CONFIG.warmRange[1] ? 'あつすぎるかも…！ 🔥' : 'ぽかぽか…'); fx('♨️');
+    say(e.warmth > CONFIG.warmRange[1] ? 'あつすぎるかも…！' : 'ぽかぽか…'); fx('flame');
   },
-  water() { G.state.egg.water = 100; say('みずを きれいにした！'); fx('💧'); },
+  water() { G.state.egg.water = 100; say('みずを きれいにした！'); fx('drop'); },
   talk() {
     if (Date.now() - G.lastTalk < 4000) { say('…（ねてるみたい）'); return; }
     G.lastTalk = Date.now();
     G.state.egg.hatch = Math.min(100, G.state.egg.hatch + 3);
-    say(pick(['…ぴく！', 'なかで うごいた！', 'こえ きこえてるかな？'])); fx('🎵');
+    say(pick(['…ぴく！', 'なかで うごいた！', 'こえ きこえてるかな？'])); fx('note');
   },
 
   // ---------- おせわ ----------
@@ -77,10 +77,10 @@ const A = {
     if (S.fake) {
       S.fake = false; S.discipline = clamp(S.discipline + 25); S.happy = clamp(S.happy - 3); care('good');
       log(`わがままを しかった（しつけ ${S.discipline}）`);
-      say(S.discipline >= 100 ? '…もう わがまま いわない！' : '…ごめんなさい'); fx('💦');
+      say(S.discipline >= 100 ? '…もう わがまま いわない！' : '…ごめんなさい'); fx('sweat');
     } else {
       S.happy = clamp(S.happy - 15); addBond(-3); care('bad');
-      say('なんで おこるの…？'); fx('💧'); beep(240, .15);
+      say('なんで おこるの…？'); fx('drop'); beep(240, .15);
     }
   },
   travel() {
@@ -103,7 +103,7 @@ const A = {
     G.busy = true; S.pos = 80; say('トイレ いってくる！');
     setTimeout(() => {
       S.bladder = 0; S.happy = clamp(S.happy + 10); S.shells += 2; care('good'); addBond(2);
-      say('ひとりで できた！ スッキリ〜'); fx('✨'); beep(880, .1); bus.emit('changed');
+      say('ひとりで できた！ スッキリ〜'); fx('sparkle'); beep(880, .1); bus.emit('changed');
       setTimeout(() => { S.pos = 50; G.busy = false; bus.emit('changed'); }, 1200);
     }, 1600);
   },
@@ -111,19 +111,19 @@ const A = {
     const S = G.state;
     if (!S.messes.length) { say('もう ぴかぴかだよ！'); return; }
     S.messes = []; S.clean = 100; S.shells += 1; care('good'); addBond(1);
-    say('おそうじ できた！ ありがと'); fx('🫧');
+    say('おそうじ できた！ ありがと'); fx('bubbles');
   },
   cleanOne({ i }) {
     const S = G.state;
     S.messes.splice(i, 1);
     if (!S.messes.length) { S.clean = Math.max(S.clean, 80); care('good'); }
-    fx('🫧'); beep(760, .05);
+    fx('bubbles'); beep(760, .05);
   },
   medicine() {
     const S = G.state;
     if (!S.sick) return;
     S.sick = false; S.happy = clamp(S.happy - 5); care('good');
-    log('おくすりで げんきに なった'); say('にがい… でも げんきに なった！'); fx('💊');
+    log('おくすりで げんきに なった'); say('にがい… でも げんきに なった！'); fx('pill');
   },
   pet() {
     const S = G.state;
@@ -131,7 +131,7 @@ const A = {
     if (asleepBlock()) return;
     if (Date.now() - G.lastPet < 2500) { say('くすぐったいよ〜'); return; }
     G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1); S.fake = false;
-    say(pick(['えへへ', 'なでなで うれしい！', 'すき〜！'])); fx('💗'); bus.emit('bounce'); beep(980, .05);
+    say(pick(['えへへ', 'なでなで うれしい！', 'すき〜！'])); fx('heart'); bus.emit('bounce'); beep(980, .05);
   },
   playResult({ win }) {
     const S = G.state;
@@ -139,7 +139,7 @@ const A = {
     care('play'); addBond(win ? 3 : 2); S.fake = false;
     S.weight = Math.max(baseWeight(S.stage), S.weight - 1);
     if (win) S.shells += 3;
-    say(win ? 'たのしかった〜！' : 'くやしい… もういっかい！'); if (win) fx('🎉');
+    say(win ? 'たのしかった〜！' : 'くやしい… もういっかい！'); if (win) fx('party');
   },
 
   // ---------- すなほり ----------
@@ -181,7 +181,7 @@ const A = {
     say(`${it.name} を かったよ！`); beep(880, .08);
     return true;
   },
-  equipHat({ id }) { const S = G.state; S.inv.hat = S.inv.hat === id ? null : id; if (S.inv.hat) { say('にあう？'); fx('✨'); } },
+  equipHat({ id }) { const S = G.state; S.inv.hat = S.inv.hat === id ? null : id; if (S.inv.hat) { say('にあう？'); fx('sparkle'); } },
   toggleDecor({ id }) {
     const p = G.state.inv.placed, i = p.indexOf(id);
     if (i >= 0) p.splice(i, 1); else p.push(id);
@@ -190,7 +190,7 @@ const A = {
     const S = G.state, f = FINDS.find(x => x.id === id);
     if (!(S.inv.finds[id] > 1)) { say('1こは ずかんに のこしておこう'); return false; }
     S.inv.finds[id]--; S.shells += f.value; beep(880, .06);
-    say(`${f.name} を うって 🐚+${f.value}`);
+    say(`${f.name} を うって かいがら+${f.value}`);
     return true;
   },
 
@@ -221,7 +221,7 @@ const A = {
     S.friendPlay[pid] = dayKey();
     S.happy = clamp(S.happy + 15); addBond(3); S.shells += 3;
     log(`${f.name} と いっしょに あそんだ`);
-    say(`${f.name} と あそんで たのしかった！`); fx('🎶'); fx('💗', 30);
+    say(`${f.name} と あそんで たのしかった！`); fx('note'); fx('heart', 30);
     return true;
   },
   // プレゼント：もちものを へらして ギフトデータを つくる（コード化は net.js）
@@ -245,7 +245,7 @@ const A = {
     else S.inv.finds[gift.id] = (S.inv.finds[gift.id] || 0) + 1;
     addBond(2);
     log(`${gift.fromName || 'ともだち'}から「${item.name}」が とどいた`);
-    fx('🎁'); beep(990, .12);
+    fx('gift'); beep(990, .12);
     return { ok: true, item };
   },
 };

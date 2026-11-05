@@ -7,6 +7,7 @@ import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, li
 import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
 import { net, makeLink } from './net.js';
+import { ic, fillIcons } from './icons.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -18,7 +19,7 @@ export function say(text) {
   clearTimeout(sayTimer); sayTimer = setTimeout(() => el.classList.remove('show'), 3200);
 }
 export function fx(ch, dx = 0) {
-  const el = document.createElement('div'); el.className = 'fx'; el.textContent = ch;
+  const el = document.createElement('div'); el.className = 'fx'; el.innerHTML = ic(ch, 30);
   const p = G.state.stage === 'egg' ? 50 : G.state.pos;
   el.style.left = `calc(${p}% + ${dx}px)`; el.style.bottom = '52%';
   $('scene').appendChild(el); setTimeout(() => el.remove(), 1300);
@@ -78,11 +79,11 @@ function copyCode(code) {
 /* ---------------- ごはん ---------------- */
 function openFood() {
   const S = G.state;
-  showModal(`<h3>🍤 なにを あげる？</h3><div class="choices">${FOODS.map(f => {
+  showModal(`<h3>${ic('ebi', 20)} なにを あげる？</h3><div class="choices">${FOODS.map(f => {
     const n = f.price === 0 ? '∞' : (S.inv.food[f.id] || 0);
     return `<button class="choice" data-a="eat" data-id="${f.id}" ${n === 0 ? 'disabled' : ''}>
-      <span class="ic">${f.ic}</span><span class="grow">${f.name}<small>${f.desc}</small></span><span class="cnt">×${n}</span></button>`;
-  }).join('')}</div><p class="note">たりない ごはんは 🛍️ショップで かえるよ</p>${closeBtn('やめる')}`, {
+      <span class="ic">${ic(f.ic, 28)}</span><span class="grow">${f.name}<small>${f.desc}</small></span><span class="cnt">×${n}</span></button>`;
+  }).join('')}</div><p class="note">たりない ごはんは ${ic('bag', 20)}ショップで かえるよ</p>${closeBtn('やめる')}`, {
     eat: el => { closeModal(); dispatch('feed', { id: el.dataset.id }); },
   });
 }
@@ -90,9 +91,9 @@ function openFood() {
 /* ---------------- あそぶ ---------------- */
 function openPlay() {
   if (G.state.energy < 15) { say('つかれてて あそべない…'); return; }
-  showModal(`<h3>🎾 なにで あそぶ？</h3><div class="choices">
-    <button class="choice" data-a="g1"><span class="ic">👀</span><span class="grow">どっちむく？<small>イカが むく ほうを あてよう</small></span></button>
-    <button class="choice" data-a="g2"><span class="ic">🎯</span><span class="grow">スミでっぽう<small>タイミングよく スミを とばそう</small></span></button>
+  showModal(`<h3>${ic('ball', 20)} なにで あそぶ？</h3><div class="choices">
+    <button class="choice" data-a="g1"><span class="ic">${ic('eyes', 20)}</span><span class="grow">どっちむく？<small>イカが むく ほうを あてよう</small></span></button>
+    <button class="choice" data-a="g2"><span class="ic">${ic('target', 20)}</span><span class="grow">スミでっぽう<small>タイミングよく スミを とばそう</small></span></button>
   </div>${closeBtn('やめる')}`, { g1: openGame, g2: openInk });
 }
 
@@ -102,10 +103,10 @@ function openInk() {
   const newZone = () => { zone = 15 + Math.random() * 60; };
   const speed = () => 1.1 + shot * .35;
   function draw(msg) {
-    showModal(`<h3>🎯 スミでっぽう</h3><p>${msg}</p>
+    showModal(`<h3>${ic('target', 20)} スミでっぽう</h3><p>${msg}</p>
       <div class="ink"><div class="zone" style="left:${zone}%"></div><div class="aim" id="aim"></div></div>
       <div class="score">${marks.join('') || '・・・'}</div>
-      <div class="row"><button class="btn big" data-a="fire">🦑 スミ！</button></div>`, { fire }, true);
+      <div class="row"><button class="btn big" data-a="fire">${ic('squid', 20)} スミ！</button></div>`, { fire }, true);
   }
   function loop() {
     x += dir * speed(); if (x > 100) { x = 100; dir = -1; } if (x < 0) { x = 0; dir = 1; }
@@ -115,12 +116,12 @@ function openInk() {
   function fire() {
     cancelAnimationFrame(raf);
     const ok = x >= zone - 2 && x <= zone + 14;
-    shot++; if (ok) hits++; marks.push(ok ? '🎯' : '💨'); beep(ok ? 900 : 300, .08);
+    shot++; if (ok) hits++; marks.push(ok ? ic('target', 26) : ic('poof', 26)); beep(ok ? 900 : 300, .08);
     if (shot < 3) { newZone(); draw(ok ? 'めいちゅう！' : 'おしい！'); raf = requestAnimationFrame(loop); return; }
     const win = hits >= 2;
     dispatch('playResult', { win });
-    showModal(`<h3>${win ? '🎉 めいちゅう！' : 'またあそぼ！'}</h3><div class="score">${marks.join('')}</div>
-      <p>ごきげん +${win ? 25 : 10}${win ? ' ／ 🐚+3' : ''} ／ たいじゅう −1g</p>${closeBtn()}`);
+    showModal(`<h3>${win ? ic('party', 22) + ' めいちゅう！' : 'またあそぼ！'}</h3><div class="score">${marks.join('')}</div>
+      <p>ごきげん +${win ? 25 : 10}${win ? ' ／ かいがら+3' : ''} ／ たいじゅう −1g</p>${closeBtn()}`);
   }
   newZone(); draw('ピンクの まとに かさなったら スミ！（3かい）'); raf = requestAnimationFrame(loop);
 }
@@ -128,19 +129,19 @@ function openInk() {
 /* どっちむく？ */
 function openGame() {
   let round = 0, wins = 0, marks = [];
-  const draw = (msg = '') => showModal(`<h3>🎾 どっちに むくかな？</h3>
+  const draw = (msg = '') => showModal(`<h3>${ic('ball', 20)} どっちに むくかな？</h3>
     <p>${msg || 'イカが むく ほうを あてよう！（3かい）'}</p>
     <div class="score">${marks.join('') || '・・・'}</div>
-    <div class="lr"><button class="btn" data-a="g" data-d="L">◀ ひだり</button><button class="btn" data-a="g" data-d="R">みぎ ▶</button></div>`, { g: guess }, true);
+    <div class="lr"><button class="btn" data-a="g" data-d="L">${ic('left', 20)} ひだり</button><button class="btn" data-a="g" data-d="R">みぎ ${ic('right', 20)}</button></div>`, { g: guess }, true);
   function guess(el) {
     const ans = Math.random() < .5 ? 'L' : 'R', ok = el.dataset.d === ans;
-    if (ok) wins++; round++; marks.push(ok ? '⭕' : '❌'); beep(ok ? 880 : 300, .08);
+    if (ok) wins++; round++; marks.push(ok ? ic('circle', 26) : ic('cross', 26)); beep(ok ? 880 : 300, .08);
     const side = ans === 'L' ? 'ひだり' : 'みぎ';
     if (round < 3) return draw(ok ? `あたり！ ${side}を むいたよ` : `ざんねん、${side}でした`);
     const win = wins >= 2;
     dispatch('playResult', { win });
-    showModal(`<h3>${win ? '🎉 かち！' : 'またあそぼ！'}</h3><div class="score">${marks.join('')}</div>
-      <p>ごきげん +${win ? 25 : 10}${win ? ' ／ 🐚+3' : ''}</p>${closeBtn()}`);
+    showModal(`<h3>${win ? ic('party', 22) + ' かち！' : 'またあそぼ！'}</h3><div class="score">${marks.join('')}</div>
+      <p>ごきげん +${win ? 25 : 10}${win ? ' ／ かいがら+3' : ''}</p>${closeBtn()}`);
   }
   draw();
 }
@@ -150,20 +151,20 @@ function openDig() {
   if (!dispatch('digStart')) return;
   const cells = Array(CONFIG.dig.spots).fill(null);
   let left = CONFIG.dig.tries, msg = 'すなの やまを えらんで ほってみよう！';
-  const draw = () => showModal(`<h3>⛏️ すなほり</h3><p>${msg}</p>
+  const draw = () => showModal(`<h3>${ic('shovel', 20)} すなほり</h3><p>${msg}</p>
     <div class="dig">${cells.map((c, i) => c
       ? `<div class="spot done">${c}</div>`
       : `<button class="spot" data-a="dig" data-i="${i}" ${left ? '' : 'disabled'}></button>`).join('')}</div>
-    <p class="note">のこり ${left}かい ／ てんき：${weatherToday().ic}${weatherToday().id === 'rain' || weatherToday().id === 'rainbow' ? ' レアが でやすい！' : ''}</p>
+    <p class="note">のこり ${left}かい ／ てんき：${ic(weatherToday().ic, 16)}${weatherToday().name}${weatherToday().id === 'rain' || weatherToday().id === 'rainbow' ? ' レアが でやすい！' : ''}</p>
     ${left ? '' : closeBtn()}`, { dig }, left > 0);
   function dig(el) {
     const i = +el.dataset.i, r = dispatch('digSpot');
     left--;
-    if (r.kind === 'shells') { cells[i] = '🐚'; msg = `かいがらを ${r.n}こ みつけた！`; beep(760, .06); }
+    if (r.kind === 'shells') { cells[i] = ic('shell', 40); msg = `かいがらを ${r.n}こ みつけた！`; beep(760, .06); }
     else if (r.kind === 'find') {
-      cells[i] = r.f.ic; beep(r.f.rare >= 3 ? 1200 : 900, .12);
-      msg = `「${r.f.name}」を みつけた！${'★'.repeat(r.f.rare)}${r.first ? '<br><b>ずかんに とうろく！ 🐚+2</b>' : ''}`;
-    } else { cells[i] = '💨'; msg = r.text; beep(300, .06); }
+      cells[i] = ic(r.f.ic, 40); beep(r.f.rare >= 3 ? 1200 : 900, .12);
+      msg = `「${r.f.name}」を みつけた！${'★'.repeat(r.f.rare)}${r.first ? '<br><b>ずかんに とうろく！ かいがら+2</b>' : ''}`;
+    } else { cells[i] = ic('poof', 40); msg = r.text; beep(300, .06); }
     draw();
   }
   draw();
@@ -176,21 +177,21 @@ function openShop(tab = shopTab) {
   const S = G.state;
   let body = '';
   if (tab === 'food') body = FOODS.filter(f => f.price > 0).map(f => `
-    <div class="choice"><span class="ic">${f.ic}</span><span class="grow">${f.name}<small>${f.desc}・もってる ${S.inv.food[f.id] || 0}</small></span>
-    <button class="btn sm" data-a="buy" data-k="food" data-id="${f.id}" ${S.shells < f.price ? 'disabled' : ''}>🐚${f.price}</button></div>`).join('');
+    <div class="choice"><span class="ic">${ic(f.ic, 28)}</span><span class="grow">${f.name}<small>${f.desc}・もってる ${S.inv.food[f.id] || 0}</small></span>
+    <button class="btn sm" data-a="buy" data-k="food" data-id="${f.id}" ${S.shells < f.price ? 'disabled' : ''}>${ic('shell', 20)}${f.price}</button></div>`).join('');
   if (tab === 'hat') body = HATS.map(h => {
     const own = S.inv.hats.includes(h.id), on = S.inv.hat === h.id;
-    return `<div class="choice"><span class="ic">${h.ic}</span><span class="grow">${h.name}<small>${own ? (on ? 'つけてる' : 'もってる') : 'きせかえ'}</small></span>
+    return `<div class="choice"><span class="ic">${ic(h.ic, 28)}</span><span class="grow">${h.name}<small>${own ? (on ? 'つけてる' : 'もってる') : 'きせかえ'}</small></span>
     ${own ? `<button class="btn sm ${on ? 'gray' : ''}" data-a="hat" data-id="${h.id}">${on ? 'はずす' : 'つける'}</button>`
-          : `<button class="btn sm" data-a="buy" data-k="hat" data-id="${h.id}" ${S.shells < h.price ? 'disabled' : ''}>🐚${h.price}</button>`}</div>`;
+          : `<button class="btn sm" data-a="buy" data-k="hat" data-id="${h.id}" ${S.shells < h.price ? 'disabled' : ''}>${ic('shell', 20)}${h.price}</button>`}</div>`;
   }).join('');
   if (tab === 'decor') body = DECOR.map(d => {
     const own = S.inv.decor.includes(d.id), on = S.inv.placed.includes(d.id);
-    return `<div class="choice"><span class="ic">${d.ic}</span><span class="grow">${d.name}<small>${own ? (on ? 'おいてある' : 'しまってある') : 'もようがえ'}</small></span>
+    return `<div class="choice"><span class="ic">${ic(d.ic, 28)}</span><span class="grow">${d.name}<small>${own ? (on ? 'おいてある' : 'しまってある') : 'もようがえ'}</small></span>
     ${own ? `<button class="btn sm ${on ? 'gray' : ''}" data-a="decor" data-id="${d.id}">${on ? 'しまう' : 'おく'}</button>`
-          : `<button class="btn sm" data-a="buy" data-k="decor" data-id="${d.id}" ${S.shells < d.price ? 'disabled' : ''}>🐚${d.price}</button>`}</div>`;
+          : `<button class="btn sm" data-a="buy" data-k="decor" data-id="${d.id}" ${S.shells < d.price ? 'disabled' : ''}>${ic('shell', 20)}${d.price}</button>`}</div>`;
   }).join('');
-  showModal(`<h3>🛍️ うみのショップ</h3><p>もってる かいがら：🐚 ${S.shells}</p>
+  showModal(`<h3>${ic('bag', 20)} うみのショップ</h3><p>もってる かいがら：${ic('shell', 20)} ${S.shells}</p>
     ${tabs([['food', 'ごはん'], ['hat', 'きせかえ'], ['decor', 'もようがえ']], tab)}
     <div class="choices scroll">${body}</div>${closeBtn()}`, {
     tab: el => openShop(el.dataset.t),
@@ -210,9 +211,9 @@ function openZukan(tab = zukanTab) {
     const got = FINDS.filter(f => S.inv.finds[f.id]).length;
     body = `<p>あつめた かず ${got} / ${FINDS.length}</p><div class="zukan">${FINDS.map(f => {
       const n = S.inv.finds[f.id] || 0;
-      return n ? `<div class="zk"><div class="zi">${f.ic}</div><b>${f.name}</b><small>${f.text}</small>
+      return n ? `<div class="zk"><div class="zi">${ic(f.ic, 34)}</div><b>${f.name}</b><small>${f.text}</small>
           <small>${'★'.repeat(f.rare)} ・ ×${n}</small>
-          ${n > 1 ? `<button class="btn xs" data-a="sell" data-id="${f.id}">うる 🐚${f.value}</button>` : ''}</div>`
+          ${n > 1 ? `<button class="btn xs" data-a="sell" data-id="${f.id}">うる ${ic('shell', 20)}${f.value}</button>` : ''}</div>`
         : `<div class="zk unk"><div class="zi">？</div><b>？？？</b><small>${'★'.repeat(f.rare)}</small></div>`;
     }).join('')}</div>`;
   } else {
@@ -226,7 +227,7 @@ function openZukan(tab = zukanTab) {
       <span class="grow">${a.gen}だいめ ${esc(a.name)}<small>${f.name}・${a.days}にち いきた・なかよしLv.${a.bond}・ミス${a.mistakes}</small></span></div>`; }).join('')}</div>`
       : '<p>まだ たびだった イカは いないよ<br>おとなに なって しばらくすると、ひろい うみへ たびだつよ</p>';
   }
-  showModal(`<h3>📖 ずかん</h3>${tabs([['finds', 'みつけたもの'], ['forms', 'すがた'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
+  showModal(`<h3>${ic('book', 20)} ずかん</h3>${tabs([['finds', 'みつけたもの'], ['forms', 'すがた'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
     tab: el => openZukan(el.dataset.t),
     sell: el => { dispatch('sell', { id: el.dataset.id }); openZukan(); },
   });
@@ -235,7 +236,7 @@ function openZukan(tab = zukanTab) {
 /* ---------------- にっき ---------------- */
 function openDiary() {
   const S = G.state, fmt = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-  showModal(`<h3>📔 にっき</h3><div class="scroll log">${S.log.length ? S.log.map(l => `<div><span>${fmt(l.t)}</span>${esc(l.text)}</div>`).join('') : '<p>まだ なにも ないよ</p>'}</div>${closeBtn()}`);
+  showModal(`<h3>${ic('diary', 20)} にっき</h3><div class="scroll log">${S.log.length ? S.log.map(l => `<div><span>${fmt(l.t)}</span>${esc(l.text)}</div>`).join('') : '<p>まだ なにも ないよ</p>'}</div>${closeBtn()}`);
 }
 
 /* ---------------- ともだち（リンクで かんたん） ---------------- */
@@ -254,16 +255,16 @@ function openFriends(tab = friendTab) {
     body = `<p>ともだちリンクを LINE などで おくろう。<br>あいてが タップするだけで ともだちに なれるよ！</p>
       <label class="lbl">あなたの なまえ</label>
       <div class="inrow"><input id="ownerName" maxlength="10" value="${esc(S.player.name)}" placeholder="なまえ"><button class="btn sm" data-a="saveName">ほぞん</button></div>
-      <div class="row"><button class="btn" data-a="shareCard">🔗 ともだちリンクを おくる</button></div>
-      ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">📋 コピー</button></div>` : ''}
+      <div class="row"><button class="btn" data-a="shareCard">${ic('link', 20)} ともだちリンクを おくる</button></div>
+      ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">${ic('clip', 20)} コピー</button></div>` : ''}
       <p class="note">イカが せいちょうしたら、もういちど おくると すがたが かわるよ<br>プレイヤーID：${S.player.id}</p>`;
   }
   if (tab === 'friends') {
     body = `<p>もらった リンクは タップするだけで OK。<br>うまく いかないときは ここに はりつけてね</p>
       <textarea id="codeIn" placeholder="ともだちリンク または IKA1. コード"></textarea>
-      <div class="row"><button class="btn" data-a="addF">🏠 あそびに きてもらう</button></div>
+      <div class="row"><button class="btn" data-a="addF">${ic('house', 20)} あそびに きてもらう</button></div>
       <div class="choices">${S.friends.length ? S.friends.map(f => `
-        <div class="choice"><span class="ic">🦑</span><span class="grow">${esc(f.name)}<small>${esc(f.owner || 'だれか')}の ${esc(f.title || '')}${S.friendPlay[f.pid] === dayKey() ? ' ・きょう あそんだ' : ''}</small></span>
+        <div class="choice"><span class="ic">${ic('squid', 20)}</span><span class="grow">${esc(f.name)}<small>${esc(f.owner || 'だれか')}の ${esc(f.title || '')}${S.friendPlay[f.pid] === dayKey() ? ' ・きょう あそんだ' : ''}</small></span>
         <button class="btn sm" data-a="inv" data-pid="${f.pid}">よぶ</button><button class="btn sm gray" data-a="rmF" data-pid="${f.pid}">×</button></div>`).join('')
         : '<p class="note">まだ ともだちは いないよ</p>'}</div>`;
   }
@@ -273,21 +274,21 @@ function openFriends(tab = friendTab) {
       ...FINDS.filter(f => S.inv.finds[f.id] > 1).map(f => ({ kind: 'find', id: f.id, ic: f.ic, name: f.name, n: S.inv.finds[f.id] - 1 })),
     ];
     body = `<p>もちものを つつんで リンクで おくれるよ</p>
-      <select id="giftItem">${items.length ? items.map(i => `<option value="${i.kind}:${i.id}">${i.ic} ${i.name}（${i.n}）</option>`).join('') : '<option value="">おくれる ものが ないよ</option>'}</select>
+      <select id="giftItem">${items.length ? items.map(i => `<option value="${i.kind}:${i.id}">${i.name}（${i.n}）</option>`).join('') : '<option value="">おくれる ものが ないよ</option>'}</select>
       <select id="giftTo"><option value="">だれでも うけとれる</option>${S.friends.map(f => `<option value="${f.pid}">${esc(f.owner || f.name)} あて</option>`).join('')}</select>
-      <div class="row"><button class="btn" data-a="mkGift" ${items.length ? '' : 'disabled'}>🎁 つつんで おくる</button></div>
-      ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">📋 コピー</button></div>` : ''}
+      <div class="row"><button class="btn" data-a="mkGift" ${items.length ? '' : 'disabled'}>${ic('gift', 20)} つつんで おくる</button></div>
+      ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">${ic('clip', 20)} コピー</button></div>` : ''}
       <hr><p>もらった プレゼントリンクは タップするだけで とどくよ。<br>うまく いかないときは ここに はりつけてね</p>
       <textarea id="giftIn" placeholder="プレゼントリンク または GIFT1. コード"></textarea>
-      <div class="row"><button class="btn" data-a="recv">📦 うけとる</button></div>`;
+      <div class="row"><button class="btn" data-a="recv">${ic('box', 20)} うけとる</button></div>`;
   }
-  showModal(`<h3>🤝 ともだち</h3>${tabs([['card', 'リンク'], ['friends', 'ともだち'], ['gift', 'プレゼント']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
+  showModal(`<h3>${ic('friends', 20)} ともだち</h3>${tabs([['card', 'リンク'], ['friends', 'ともだち'], ['gift', 'プレゼント']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
     tab: el => { lastCode = ''; openFriends(el.dataset.t); },
     saveName: () => { dispatch('setPlayerName', { name: $('ownerName').value.trim() }); say('なまえを ほぞんしたよ'); openFriends(); },
     shareCard: async () => {
       if (!needOwnerName(S)) return;
       lastCode = makeLink('f', makeCard()); openFriends();
-      await shareLink(lastCode, `${S.player.name}の イカ「${S.name || 'イカッチ'}」と ともだちに なろう！ タップしてね🦑`);
+      await shareLink(lastCode, `${S.player.name}の イカ「${S.name || 'イカッチ'}」と ともだちに なろう！ タップしてね`);
     },
     copy: () => copyCode(lastCode),
     addF: async () => {
@@ -302,7 +303,7 @@ function openFriends(tab = friendTab) {
       if (!gift) return;
       lastCode = makeLink('g', gift); save(); openFriends('gift');
       const item = (kind === 'food' ? FOODS : FINDS).find(x => x.id === id);
-      await shareLink(lastCode, `イカッチの プレゼントだよ🎁（${item.name}）タップして うけとってね`);
+      await shareLink(lastCode, `イカッチの プレゼントだよ（${item.name}）タップして うけとってね`);
     },
     recv: async () => {
       try { acceptGift(await net.receiveGift($('giftIn').value)); }
@@ -316,16 +317,16 @@ function acceptFriend(card) {
   const isNew = !S.friends.some(f => f.pid === card.pid);
   if (!dispatch('addFriend', { card })) return;
   dispatch('inviteFriend', { pid: card.pid });
-  showModal(`<h3>🎉 ${isNew ? 'ともだちに なった！' : 'ともだちが きた！'}</h3>
+  showModal(`<h3>${ic('party', 22)} ${isNew ? 'ともだちに なった！' : 'ともだちが きた！'}</h3>
     <p>${esc(card.owner || 'ともだち')}の「${esc(card.name)}」が あそびに きたよ</p>
     <p>あなたの リンクも おくりかえす？</p>
-    <div class="row"><button class="btn" data-a="back">🔗 おくりかえす</button></div>${closeBtn('あとで')}`, {
+    <div class="row"><button class="btn" data-a="back">${ic('link', 20)} おくりかえす</button></div>${closeBtn('あとで')}`, {
     back: () => openFriends('card'),
   });
 }
 function acceptGift(gift) {
   const r = dispatch('receiveGift', { gift });
-  if (r.ok) { closeModal(); say(`${gift.fromName || 'ともだち'}から ${r.item.ic}${r.item.name} が とどいた！`); }
+  if (r.ok) { closeModal(); say(`${gift.fromName || 'ともだち'}から ${r.item.name} が とどいた！`); }
   else { say(r.msg); beep(260, .1); }
 }
 
@@ -338,7 +339,7 @@ export function handleLink(r) {
   if (r.kind === 'g') acceptGift(r.data);
   if (r.kind === 'm') {
     const d = r.data;
-    showModal(`<h3>📦 ひっこし</h3><p>「${esc(d.name || 'たまご')}」（${d.gen || 1}だいめ）の データを よみこみます。<br><b>いまの この ばしょの データは きえます。</b></p>
+    showModal(`<h3>${ic('box', 20)} ひっこし</h3><p>「${esc(d.name || 'たまご')}」（${d.gen || 1}だいめ）の データを よみこみます。<br><b>いまの この ばしょの データは きえます。</b></p>
       <div class="row"><button class="btn gray" data-a="close">やめる</button><button class="btn" data-a="ok">ひっこす</button></div>`, {
       ok: () => { dispatch('importSave', { data: d }); closeModal(); say('ひっこし かんりょう！ また よろしくね'); },
     }, true);
@@ -348,11 +349,11 @@ export function handleLink(r) {
 /* ---------------- ひっこし（きしゅへんこう） ---------------- */
 function openMove() {
   const S = G.state;
-  showModal(`<h3>📦 ひっこし</h3>
+  showModal(`<h3>${ic('box', 20)} ひっこし</h3>
     <p>スマホを かえるときは、ひっこしリンクを じぶんに おくって、あたらしい スマホで ひらいてね。<br>アカウントは いらないよ。</p>
-    <div class="row"><button class="btn" data-a="mk">📦 ひっこしリンクを つくる</button></div>
-    ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">📋 コピー</button></div>` : ''}
-    <p class="note">⚠️ このリンクを ひとに わたすと、あなたの イカを コピーされちゃうよ</p>${closeBtn()}`, {
+    <div class="row"><button class="btn" data-a="mk">${ic('box', 20)} ひっこしリンクを つくる</button></div>
+    ${lastCode ? `<textarea id="codeOut" readonly>${esc(lastCode)}</textarea><div class="row"><button class="btn sm" data-a="copy">${ic('clip', 20)} コピー</button></div>` : ''}
+    <p class="note">${ic('alert', 20)} このリンクを ひとに わたすと、あなたの イカを コピーされちゃうよ</p>${closeBtn()}`, {
     mk: async () => {
       const data = { ...S, log: S.log.slice(0, 10) };
       lastCode = makeLink('m', data); openMove();
@@ -365,9 +366,9 @@ function openMove() {
 /* ---------------- しらべる（たまごっちの ステータス画面） ---------------- */
 function openCheck() {
   const S = G.state, base = baseWeight(S.stage), over = S.weight - base;
-  const hearts = v => '❤️'.repeat(Math.round(v / 25)) + '🤍'.repeat(4 - Math.round(v / 25));
+  const hearts = v => ic('heart', 16).repeat(Math.round(v / 25)) + ic('heartEmpty', 16).repeat(4 - Math.round(v / 25));
   const left = Math.max(0, lifespan() - S.ageMin);
-  showModal(`<h3>🔍 しらべる</h3>
+  showModal(`<h3>${ic('search', 20)} しらべる</h3>
     <div class="check">
       <div><span>なまえ</span><b>${esc(S.name || 'イカッチ')}（${S.gen}だいめ）</b></div>
       <div><span>すがた</span><b>${stageName(S)}</b></div>
@@ -381,7 +382,7 @@ function openCheck() {
       ${S.stage === 'child' ? `<div><span>こども期の きろく</span><b><small>おせわ${S.care.good}・ミス${S.care.bad}・ごはん${S.care.feed}・あそび${S.care.play}</small></b></div>` : ''}
       ${S.stage === 'adult' ? `<div><span>たびだちまで</span><b>あと ${(left / 60).toFixed(1)}じかん</b></div>` : ''}
     </div>
-    <p class="note">💢が でたら わがまま。しかって しつけよう<br>💡が でたら でんきを けしてあげよう</p>${closeBtn()}`);
+    <p class="note">${ic('angry', 20)}が でたら わがまま。しかって しつけよう<br>${ic('bulb', 20)}が でたら でんきを けしてあげよう</p>${closeBtn()}`);
 }
 
 /* ---------------- たびだち（せだいこうたい） ---------------- */
@@ -389,21 +390,21 @@ function openTravel() {
   const S = G.state;
   if (!S.travelReady) return;
   const f = FORMS[S.form] || FORMS.surume;
-  showModal(`<h3>🌊 たびだちの とき</h3>
+  showModal(`<h3>${ic('wave', 20)} たびだちの とき</h3>
     <p>りっぱな ${f.name}に そだった「${esc(S.name || 'イカッチ')}」は、<br>ひろい うみへ たびだつ ときが きたみたい。</p>
     <p>いままで ありがとう！<br>アルバムに のこして、つぎの たまごを うけとろう。</p>
-    <p class="note">もちもの・かいがら・ともだちは そのまま。🐚+20</p>
-    <div class="row"><button class="btn" data-a="go">👋 みおくる</button></div>`, {
-    go: () => { const nm = S.name; dispatch('travel'); closeModal(); say(`${nm || 'イカッチ'}、げんきでね！ つぎの たまごが とどいたよ`); fx('🥚'); },
+    <p class="note">もちもの・かいがら・ともだちは そのまま。${ic('shell', 20)}+20</p>
+    <div class="row"><button class="btn" data-a="go">${ic('hand', 20)} みおくる</button></div>`, {
+    go: () => { const nm = S.name; dispatch('travel'); closeModal(); say(`${nm || 'イカッチ'}、げんきでね！ つぎの たまごが とどいたよ`); fx('egg'); },
   }, true);
 }
 
 function openVisitor() {
   const v = G.visitor; if (!v) return;
   const played = G.state.friendPlay[v.card.pid] === dayKey();
-  showModal(`<h3>🦑 ${esc(v.card.name)}</h3><p>${esc(v.card.owner || 'ともだち')}の ${esc(v.card.title || '')}が あそびに きてるよ！</p>
-    <div class="row"><button class="btn" data-a="play" ${played ? 'disabled' : ''}>${played ? 'きょうは あそんだ' : '🎶 いっしょに あそぶ'}</button></div>
-    <div class="row"><button class="btn gray" data-a="bye">👋 バイバイ</button></div>`, {
+  showModal(`<h3>${ic('squid', 20)} ${esc(v.card.name)}</h3><p>${esc(v.card.owner || 'ともだち')}の ${esc(v.card.title || '')}が あそびに きてるよ！</p>
+    <div class="row"><button class="btn" data-a="play" ${played ? 'disabled' : ''}>${played ? 'きょうは あそんだ' : ic('note', 18) + ' いっしょに あそぶ'}</button></div>
+    <div class="row"><button class="btn gray" data-a="bye">${ic('hand', 20)} バイバイ</button></div>`, {
     play: () => { closeModal(); dispatch('friendPlay', { pid: v.card.pid }); },
     bye: () => { closeModal(); dispatch('sendHome'); },
   });
@@ -413,45 +414,46 @@ function openVisitor() {
 export function askName() {
   const S = G.state;
   if (S.stage === 'egg' || S.name) return;
-  showModal(`<h3>🐣 うまれたよ！</h3><p>なまえを つけてあげよう</p>
+  showModal(`<h3>${ic('chick', 20)} うまれたよ！</h3><p>なまえを つけてあげよう</p>
     <input id="nameInput" maxlength="8" placeholder="イカッチ">
     <div class="row"><button class="btn" data-a="ok">けってい</button></div>`, { ok }, true);
   function ok() { S.name = ($('nameInput').value.trim() || 'イカッチ'); closeModal(); say(`ぼく ${S.name}！ よろしくね`); render(); save(); }
   $('nameInput').onkeydown = e => { if (e.key === 'Enter') ok(); };
   setTimeout(() => { try { $('nameInput').focus(); } catch (e) {} }, 50);
 }
-$('resetBtn').onclick = () => showModal(`<h3>🥚 さいしょから？</h3><p>いまの イカとは おわかれに なります<br>（かいがら・もちもの・ともだちも きえます）</p>
+$('resetBtn').onclick = () => showModal(`<h3>${ic('egg', 20)} さいしょから？</h3><p>いまの イカとは おわかれに なります<br>（かいがら・もちもの・ともだちも きえます）</p>
   <div class="row"><button class="btn gray" data-a="close">やめる</button><button class="btn" data-a="reset">あたらしい たまご</button></div>`, {
   reset: () => { const keep = G.state.player; G.state = newState(); G.state.player = keep; G.visitor = null; closeModal(); say('あたらしい たまごが とどいた！'); render(); save(); },
 });
 $('moveBtn').onclick = () => openMove();
-$('speedBtn').onclick = () => { G.speed = G.speed === 1 ? 10 : G.speed === 10 ? 60 : 1; $('speedBtn').textContent = `⏩ はやさ ×${G.speed}`; };
-$('soundBtn').onclick = () => { G.sound = !G.sound; $('soundBtn').textContent = G.sound ? '🔊 おと ON' : '🔈 おと OFF'; };
+$('speedBtn').onclick = () => { G.speed = G.speed === 1 ? 10 : G.speed === 10 ? 60 : 1; $('speedBtn').innerHTML = `${ic('fast', 12)} はやさ ×${G.speed}`; };
+$('soundBtn').onclick = () => { G.sound = !G.sound; $('soundBtn').innerHTML = G.sound ? `${ic('sound', 12)} おと ON` : `${ic('mute', 12)} おと OFF`; };
 
+fillIcons();
 /* ---------------- ボタン ---------------- */
 const EGG_ACTIONS = [
-  { k: 'warm', ic: '♨️', t: 'あたためる' },
-  { k: 'water', ic: '💧', t: 'みずかえ' },
-  { k: 'talk', ic: '🎵', t: 'はなしかける' },
+  { k: 'warm', ic: 'flame', t: 'あたためる' },
+  { k: 'water', ic: 'drop', t: 'みずかえ' },
+  { k: 'talk', ic: 'note', t: 'はなしかける' },
 ];
 const LIFE_ACTIONS = [
-  { k: 'feed', ic: '🍤', t: 'ごはん' },
-  { k: 'futon', ic: '🛏️', t: 'おふとん' },
-  { k: 'toilet', ic: '🚽', t: 'トイレ' },
-  { k: 'clean', ic: '🧽', t: 'そうじ' },
-  { k: 'play', ic: '🎾', t: 'あそぶ' },
-  { k: 'scold', ic: '😤', t: 'しかる' },
-  { k: 'medicine', ic: '💊', t: 'おくすり' },
-  { k: 'check', ic: '🔍', t: 'しらべる' },
+  { k: 'feed', ic: 'ebi', t: 'ごはん' },
+  { k: 'futon', ic: 'bed', t: 'おふとん' },
+  { k: 'toilet', ic: 'toilet', t: 'トイレ' },
+  { k: 'clean', ic: 'sponge', t: 'そうじ' },
+  { k: 'play', ic: 'ball', t: 'あそぶ' },
+  { k: 'scold', ic: 'angry', t: 'しかる' },
+  { k: 'medicine', ic: 'pill', t: 'おくすり' },
+  { k: 'check', ic: 'search', t: 'しらべる' },
 ];
 const MENU = [
-  { k: 'shop', ic: '🛍️', t: 'ショップ', fn: () => openShop() },
-  { k: 'dig', ic: '⛏️', t: 'すなほり', fn: openDig },
-  { k: 'zukan', ic: '📖', t: 'ずかん', fn: () => openZukan() },
-  { k: 'friends', ic: '🤝', t: 'ともだち', fn: () => openFriends() },
-  { k: 'diary', ic: '📔', t: 'にっき', fn: openDiary },
+  { k: 'shop', ic: 'bag', t: 'ショップ', fn: () => openShop() },
+  { k: 'dig', ic: 'shovel', t: 'すなほり', fn: openDig },
+  { k: 'zukan', ic: 'book', t: 'ずかん', fn: () => openZukan() },
+  { k: 'friends', ic: 'friends', t: 'ともだち', fn: () => openFriends() },
+  { k: 'diary', ic: 'diary', t: 'にっき', fn: openDiary },
 ];
-$('menu').innerHTML = MENU.map(m => `<button class="mbtn" data-k="${m.k}"><span>${m.ic}</span>${m.t}</button>`).join('');
+$('menu').innerHTML = MENU.map(m => `<button class="mbtn" data-k="${m.k}"><span>${ic(m.ic, 22)}</span>${m.t}</button>`).join('');
 $('menu').addEventListener('click', e => { const b = e.target.closest('.mbtn'); if (b) { beep(520, .05); MENU.find(m => m.k === b.dataset.k).fn(); } });
 $('actions').addEventListener('click', e => {
   const b = e.target.closest('.act'); if (!b || b.disabled) return;
@@ -490,14 +492,14 @@ export function render() {
   const S = G.state, egg = S.stage === 'egg', w = weatherToday(), tod = timeOfDay();
   const d = new Date();
   $('clock').textContent = `${TOD_LABEL[tod]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  $('weather').textContent = (w.id === 'sunny' && tod === 'night') ? '🌙' : w.ic;
+  $('weather').innerHTML = ic((w.id === 'sunny' && tod === 'night') ? 'moon' : w.ic, 16);
   $('weather').title = w.name;
   $('shells').textContent = S.shells;
   $('scene').className = `scene t-${tod} w-${w.id}`;
 
   // decor
   $('decor').innerHTML = DECOR.filter(x => S.inv.placed.includes(x.id)).map(x =>
-    `<div class="decor ${x.glow ? 'glow' : ''}" style="left:${x.x}%;bottom:${x.y}%;font-size:${x.size}px">${x.ic}</div>`).join('');
+    `<div class="decor ${x.glow ? 'glow' : ''}" style="left:${x.x}%;bottom:${x.y}%">${ic(x.ic, x.size + 6)}</div>`).join('');
 
   // pet
   const pet = $('pet');
@@ -537,16 +539,16 @@ export function render() {
 
   // need bubble
   let n = '';
-  if (egg) { const e = S.egg; n = e.warmth < CONFIG.warmRange[0] ? '🥶' : e.warmth > CONFIG.warmRange[1] ? '🥵' : e.water < 30 ? '💧' : ''; }
-  else if (S.travelReady) n = '🌊';
-  else if (S.sleeping) n = S.lightsOff ? '' : '💡';
-  else n = S.sick ? '💊' : S.bladder > 70 ? '🚽' : S.hunger < 30 ? '🍤' : S.messes.length ? '🧽' : S.fake ? '💢' : S.energy < 25 ? '💤' : S.happy < 30 ? '🎾' : '';
+  if (egg) { const e = S.egg; n = e.warmth < CONFIG.warmRange[0] ? 'cold' : e.warmth > CONFIG.warmRange[1] ? 'hot' : e.water < 30 ? 'drop' : ''; }
+  else if (S.travelReady) n = 'wave';
+  else if (S.sleeping) n = S.lightsOff ? '' : 'bulb';
+  else n = S.sick ? 'pill' : S.bladder > 70 ? 'toilet' : S.hunger < 30 ? 'ebi' : S.messes.length ? 'sponge' : S.fake ? 'angry' : S.energy < 25 ? 'zzz' : S.happy < 30 ? 'ball' : '';
   // よびだし音（あたらしい よびだしが でたら ピピッ）
   if (n && n !== lastNeed && !egg) { beep(1320, .07); setTimeout(() => beep(1320, .07), 140); }
   lastNeed = n;
   $('call').classList.toggle('on', !!n && !egg);
   const need = $('need'), sc = scaleOf(S.stage, S.form);
-  need.textContent = n; need.classList.toggle('show', !!n);
+  if (need.dataset.n !== n) { need.innerHTML = n ? ic(n, 26) : ''; need.dataset.n = n; } need.classList.toggle('show', !!n);
   need.style.left = `calc(${egg ? 50 : S.pos}% + ${40 * sc + 10}px)`;
   need.style.bottom = `calc(13% + ${200 * sc}px)`;
 
@@ -562,29 +564,29 @@ export function render() {
     $('petName').textContent = S.name || 'イカッチ';
     const age = S.ageMin < 60 ? `${Math.floor(S.ageMin)}ふん` : `${Math.floor(S.ageMin / 60)}じかん`;
     $('petInfo').textContent = `${S.gen > 1 ? S.gen + 'だいめ・' : ''}${stageName(S)}・${ageYears(S)}さい（${age}）・${S.weight}g${S.sick ? '・びょうき' : ''}`;
-    $('bond').textContent = `💗 なかよし Lv.${bondLevel()}`;
+    $('bond').innerHTML = `${ic('heart', 13)} なかよし Lv.${bondLevel()}`;
   }
   $('meters').innerHTML = egg
-    ? meterHTML('🌡️ あたたかさ', S.egg.warmth, S.egg.warmth > CONFIG.warmRange[1] ? 'var(--red)' : S.egg.warmth < CONFIG.warmRange[0] ? 'var(--blue)' : 'var(--green)', CONFIG.warmRange)
-      + meterHTML('💧 みずの きれいさ', S.egg.water, lv(S.egg.water))
-      + meterHTML('🥚 ふか', S.egg.hatch, 'var(--accent)')
-    : meterHTML('🍤 おなか', S.hunger, lv(S.hunger))
-      + meterHTML('⚡ げんき', S.energy, lv(S.energy))
-      + meterHTML('🚽 トイレ', S.bladder, S.bladder > 70 ? 'var(--red)' : S.bladder > 40 ? 'var(--yellow)' : 'var(--blue)')
-      + meterHTML('💗 ごきげん', S.happy, lv(S.happy))
-      + meterHTML('🫧 きれいさ', S.clean, lv(S.clean));
+    ? meterHTML(ic('thermo', 14) + ' あたたかさ', S.egg.warmth, S.egg.warmth > CONFIG.warmRange[1] ? 'var(--red)' : S.egg.warmth < CONFIG.warmRange[0] ? 'var(--blue)' : 'var(--green)', CONFIG.warmRange)
+      + meterHTML(ic('drop', 14) + ' みずの きれいさ', S.egg.water, lv(S.egg.water))
+      + meterHTML(ic('egg', 14) + ' ふか', S.egg.hatch, 'var(--accent)')
+    : meterHTML(ic('ebi', 14) + ' おなか', S.hunger, lv(S.hunger))
+      + meterHTML(ic('bolt', 14) + ' げんき', S.energy, lv(S.energy))
+      + meterHTML(ic('toilet', 14) + ' トイレ', S.bladder, S.bladder > 70 ? 'var(--red)' : S.bladder > 40 ? 'var(--yellow)' : 'var(--blue)')
+      + meterHTML(ic('heart', 14) + ' ごきげん', S.happy, lv(S.happy))
+      + meterHTML(ic('bubbles', 14) + ' きれいさ', S.clean, lv(S.clean));
 
   const mode = egg ? 'egg' : 'life';
   if (actionMode !== mode) {
     actionMode = mode;
     $('actions').className = 'actions ' + (egg ? 'egg' : 'life');
-    $('actions').innerHTML = (egg ? EGG_ACTIONS : LIFE_ACTIONS).map(a => `<button class="act" data-k="${a.k}"><span class="ic">${a.ic}</span><span class="t">${a.t}</span></button>`).join('');
+    $('actions').innerHTML = (egg ? EGG_ACTIONS : LIFE_ACTIONS).map(a => `<button class="act" data-k="${a.k}"><span class="ic">${ic(a.ic, 26)}</span><span class="t">${a.t}</span></button>`).join('');
   }
   if (!egg) {
     const q = k => document.querySelector(`.act[data-k="${k}"]`);
     q('futon').classList.toggle('on', S.sleeping);
     q('futon').querySelector('.t').textContent = S.sleeping ? (S.lightsOff ? 'おこす' : 'でんき') : 'おふとん';
-    q('futon').querySelector('.ic').textContent = S.sleeping && !S.lightsOff ? '💡' : '🛏️';
+    { const fi = S.sleeping && !S.lightsOff ? 'bulb' : 'bed'; const el = q('futon').querySelector('.ic'); if (el.dataset.n !== fi) { el.innerHTML = ic(fi, 26); el.dataset.n = fi; } }
     q('medicine').disabled = !S.sick;
   }
   document.querySelector('.mbtn[data-k="dig"]').disabled = egg;

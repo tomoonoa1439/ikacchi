@@ -19,7 +19,7 @@ save();
 
 setTimeout(() => {
   const S = G.state;
-  if (away.daily) { log('きょうも あそびに きた'); say(`きょうも きてくれた！ 🐚+5 ／ きょうの てんき：${w.ic}${w.name}`); }
+  if (away.daily) { log('きょうも あそびに きた'); say(`きょうも きてくれた！ かいがら+5 ／ きょうの てんき：${w.name}`); }
   else if (S.stage === 'egg' && S.egg.hatch === 0) say('イカの たまごが とどいた！ あたためて ふかそう');
   else if (away.mins > 5 && S.stage !== 'egg') say(away.newMistakes ? `るすのあいだに おせわミスが ${away.newMistakes}かい…` : away.newMesses ? `るすのあいだに ${away.newMesses}かい もらしちゃった…` : 'おかえり！ まってたよ');
   askName();

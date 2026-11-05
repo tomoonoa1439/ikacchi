@@ -67,7 +67,7 @@ export function step(dt, live) {
     } else if (night && hour() >= 21 && S.energy < 70 && Math.random() < dt * .15) {
       // たまごっちと同じく よるは 自分で ねる → でんきを けしてあげる
       S.sleeping = true; S.lightsOff = false; S.pos = 50; S.fake = false;
-      log('ねむくなって ねちゃった'); say(live, 'ねむくなっちゃった… 💡でんきを けしてね');
+      log('ねむくなって ねちゃった'); say(live, 'ねむくなっちゃった… でんきを けしてね');
     }
   }
 
@@ -141,7 +141,7 @@ export function hatch(live) {
   });
   S.shells += 5;
   log(S.gen > 1 ? `${S.gen}だいめの イカが うまれた！` : 'たまごから うまれた！');
-  if (live) { say(live, 'ぱかっ！ うまれたよ！'); bus.emit('fx', '🐣'); bus.emit('fx', '✨', 30); bus.emit('beep', 990, .15); }
+  if (live) { say(live, 'ぱかっ！ うまれたよ！'); bus.emit('fx', 'chick'); bus.emit('fx', 'sparkle', 30); bus.emit('beep', 990, .15); }
   bus.emit('hatched', live);
 }
 
@@ -171,7 +171,7 @@ function grow(st, live) {
   if (st.id === 'adult') S.form = decideForm(S.care, S);
   const nm = stageName(S);
   log(`${nm}に せいちょうした！`);
-  if (live) { say(live, `${nm}に せいちょうした！`); bus.emit('fx', '✨'); bus.emit('fx', '🎉', 30); bus.emit('beep', 880, .15); }
+  if (live) { say(live, `${nm}に せいちょうした！`); bus.emit('fx', 'sparkle'); bus.emit('fx', 'party', 30); bus.emit('beep', 880, .15); }
 }
 
 // るすの間の時間を すすめる。日がかわったら ボーナス

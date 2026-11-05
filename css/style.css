@@ -220,3 +220,18 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
   .pill{padding:3px 7px;font-size:11px}
   .actions.life .act{font-size:11px}
 }
+/* オリジナルアイコン */
+.ico{display:inline-block;vertical-align:middle;flex:none;overflow:visible}
+.modal h3 .ico{width:24px;height:24px;vertical-align:-5px}
+.btn .ico{width:1.15em;height:1.15em;vertical-align:-.2em}
+.mini .ico{vertical-align:-2px}
+.pill .ico{vertical-align:-2px}
+.note .ico,.modal p .ico{width:16px;height:16px;vertical-align:-3px}
+.choice .ic .ico{width:30px;height:30px}
+.score .ico{margin:0 3px}
+.logo .ico{width:30px;height:30px}
+.fx .ico{width:30px;height:30px}
+.need .ico{width:26px;height:26px}
+.decor .ico{display:block}
+.check b .ico{margin-left:1px}
+.who span .ico{vertical-align:-2px}
