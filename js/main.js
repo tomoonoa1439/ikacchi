@@ -5,6 +5,7 @@ import { G, bus, load, save, newState, rand, dayKey } from './state.js';
 import { step, catchUp, weatherToday, log } from './sim.js';
 import { render, decorate, say, askName, handleLink } from './ui.js';
 import { parseLink } from './net.js';
+import { socialTick, relOf } from './social.js';
 
 G.state = load() || newState();
 const away = catchUp();
@@ -32,8 +33,13 @@ setInterval(() => {
   const S = G.state;
   step((1 / 60) * G.speed, true);
   tick++;
-  if (!G.busy && S.stage !== 'egg' && !S.sleeping && tick % 4 === 0 && Math.random() < .6) S.pos = Math.round(rand(36, 66));
-  if (G.visitor && tick % 5 === 0) G.visitor.pos = Math.round(rand(55, 75));
+  if (!G.busy && S.stage !== 'egg' && !S.sleeping && tick % 4 === 0 && Math.random() < .6) S.pos = Math.round(G.visitor ? rand(30, 44) : rand(36, 66));
+  if (G.visitor && tick % 5 === 0) {
+    const r = relOf(G.visitor.card.pid);
+    // けんか中は はなれて、こいびとは となりに
+    G.visitor.pos = r.kenka ? Math.round(rand(80, 86)) : r.lover && !S.sleeping ? Math.min(84, S.pos + 26) : Math.round(rand(62, 78));
+    socialTick();
+  }
   render();
   if (tick % 5 === 0) save();
 }, 1000);

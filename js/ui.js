@@ -7,6 +7,7 @@ import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, li
 import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
 import { net, makeLink } from './net.js';
+import { REL, REL_RULE, relOf, relStage, canConfess } from './social.js';
 import { ic, fillIcons } from './icons.js';
 
 const $ = id => document.getElementById(id);
@@ -49,9 +50,9 @@ bus.on('link', r => setTimeout(() => handleLink(r), 300));
 /* ---------------- modal ---------------- */
 let mh = {}, modalLock = false;
 export function showModal(html, handlers = {}, lock = false) {
-  $('modal').innerHTML = html; mh = handlers; modalLock = lock; $('modalBack').classList.add('show');
+  $('modal').innerHTML = html; mh = handlers; modalLock = lock; $('modalBack').classList.add('show'); G.modalOpen = true;
 }
-export function closeModal() { $('modalBack').classList.remove('show'); mh = {}; modalLock = false; }
+export function closeModal() { $('modalBack').classList.remove('show'); mh = {}; modalLock = false; G.modalOpen = false; }
 $('modal').addEventListener('click', ev => {
   const el = ev.target.closest('[data-a]'); if (!el || el.disabled) return;
   if (el.dataset.a === 'close') return closeModal();
@@ -243,6 +244,18 @@ function openDiary() {
   showModal(`<h3>${ic('diary', 20)} にっき</h3><div class="scroll log">${S.log.length ? S.log.map(l => `<div><span>${fmt(l.t)}</span>${esc(l.text)}</div>`).join('') : '<p>まだ なにも ないよ</p>'}</div>${closeBtn()}`);
 }
 
+/* ---------------- かんけい ---------------- */
+const relHearts = r => { const n = REL[relStage(r)].hearts; return n ? ic('heart', 13).repeat(n) : ''; };
+function relBadge(pid) {
+  const r = relOf(pid), st = relStage(r);
+  return `<span class="rel rel-${st}">${REL[st].name}${relHearts(r)}${r.kenka ? ' <em>けんかちゅう</em>' : ''}</span>`;
+}
+function nextInfo(r) {
+  const st = relStage(r);
+  const next = st === 'shiriai' ? ['ともだち', REL_RULE.tomodachi] : st === 'tomodachi' ? ['なかよし', REL_RULE.nakayoshi] : st === 'nakayoshi' ? ['しんゆう', REL_RULE.shinyu] : null;
+  return next ? `つぎは「${next[0]}」` : st === 'shinyu' ? 'おとなに なると…？' : 'ラブラブ';
+}
+
 /* ---------------- ともだち（リンクで かんたん） ---------------- */
 let friendTab = 'card', lastCode = '';
 function needOwnerName(S) {
@@ -268,7 +281,7 @@ function openFriends(tab = friendTab) {
       <textarea id="codeIn" placeholder="ともだちリンク または IKA1. コード"></textarea>
       <div class="row"><button class="btn" data-a="addF">${ic('house', 20)} あそびに きてもらう</button></div>
       <div class="choices">${S.friends.length ? S.friends.map(f => `
-        <div class="choice"><span class="ic">${ic('squid', 20)}</span><span class="grow">${esc(f.name)}<small>${esc(f.owner || 'だれか')}の ${esc(f.title || '')}${S.friendPlay[f.pid] === dayKey() ? ' ・きょう あそんだ' : ''}</small></span>
+        <div class="choice"><span class="ic">${ic('squid', 20)}</span><span class="grow">${esc(f.name)} ${relBadge(f.pid)}<small>${esc(f.owner || 'だれか')}の ${esc(f.title || '')}${S.friendPlay[f.pid] === dayKey() ? ' ・きょう あそんだ' : ''}</small></span>
         <button class="btn sm" data-a="inv" data-pid="${f.pid}">よぶ</button><button class="btn sm gray" data-a="rmF" data-pid="${f.pid}">×</button></div>`).join('')
         : '<p class="note">まだ ともだちは いないよ</p>'}</div>`;
   }
@@ -405,14 +418,76 @@ function openTravel() {
 
 function openVisitor() {
   const v = G.visitor; if (!v) return;
-  const played = G.state.friendPlay[v.card.pid] === dayKey();
-  showModal(`<h3>${ic('squid', 20)} ${esc(v.card.name)}</h3><p>${esc(v.card.owner || 'ともだち')}の ${esc(v.card.title || '')}が あそびに きてるよ！</p>
-    <div class="row"><button class="btn" data-a="play" ${played ? 'disabled' : ''}>${played ? 'きょうは あそんだ' : ic('note', 18) + ' いっしょに あそぶ'}</button></div>
-    <div class="row"><button class="btn gray" data-a="bye">${ic('hand', 20)} バイバイ</button></div>`, {
-    play: () => { closeModal(); dispatch('friendPlay', { pid: v.card.pid }); },
+  const S = G.state, pid = v.card.pid, r = relOf(pid), st = relStage(r);
+  const played = S.friendPlay[pid] === dayKey();
+  const foods = FOODS.filter(f => f.price > 0 && S.inv.food[f.id] > 0);
+  const meter = st === 'koibito' ? 100 : st === 'shinyu' ? Math.min(100, (r.pt - 80) * 5) : st === 'nakayoshi' ? (r.pt - 50) / 30 * 100 : st === 'tomodachi' ? (r.pt - 20) / 30 * 100 : r.pt / 20 * 100;
+  showModal(`<h3>${ic('squid', 20)} ${esc(v.card.name)}</h3>
+    <p>${esc(v.card.owner || 'ともだち')}の ${esc(v.card.title || '')}</p>
+    <div class="relbox">${relBadge(pid)}<div class="bar sm"><i style="width:${meter}%;background:var(--accent)"></i></div><small>${nextInfo(r)}</small></div>
+    ${r.kenka ? `<p class="kenka">けんかちゅう… ${esc(v.card.name)}は むこうを むいている</p>
+      <div class="row"><button class="btn" data-a="sorry">${ic('heart', 18)} ごめんねを いう</button></div>
+      ${foods.length ? `<div class="row"><button class="btn sm" data-a="giftMenu">${ic('gift', 16)} プレゼントで なかなおり</button></div>` : ''}
+      <p class="note">じかんを おくと しぜんに なおることも あるよ</p>`
+    : `<div class="vgrid">
+      <button class="choice" data-a="play" ${played ? 'disabled' : ''}><span class="ic">${ic('note', 26)}</span><span class="grow">${played ? 'きょうは あそんだ' : 'いっしょに あそぶ'}<small>1にち 1かい</small></span></button>
+      <button class="choice" data-a="talk"><span class="ic">${ic('friends', 26)}</span><span class="grow">おしゃべり<small>のこり ${Math.max(0, REL_RULE.talkPerDay - (r.day === dayKey() ? r.talkN : 0))}かい</small></span></button>
+      <button class="choice" data-a="giftMenu" ${foods.length ? '' : 'disabled'}><span class="ic">${ic('gift', 26)}</span><span class="grow">プレゼント<small>${foods.length ? 'ごはんを あげる' : 'ごはんが ないよ'}</small></span></button>
+      ${canConfess(r, v.card) ? `<button class="choice love" data-a="confess"><span class="ic">${ic('heart', 26)}</span><span class="grow">すきって つたえる<small>ドキドキ…</small></span></button>` : ''}
+    </div>`}
+    <div class="row"><button class="btn gray" data-a="bye">${ic('hand', 18)} バイバイ</button><button class="btn gray" data-a="close">とじる</button></div>`, {
+    play: () => { closeModal(); dispatch('friendPlay', { pid }); },
+    talk: () => { const line = dispatch('talkFriend', { pid }); if (line) say(line); openVisitor(); },
+    sorry: () => { const ok = dispatch('apologize', { pid }); ok ? closeModal() : openVisitor(); },
+    giftMenu: () => showModal(`<h3>${ic('gift', 20)} なにを あげる？</h3><div class="choices">${foods.map(f => `
+      <button class="choice" data-a="give" data-id="${f.id}"><span class="ic">${ic(f.ic, 28)}</span><span class="grow">${f.name}<small>もってる ${S.inv.food[f.id]}</small></span></button>`).join('')}</div>
+      <div class="row"><button class="btn gray" data-a="back">もどる</button></div>`, {
+      give: el => { dispatch('giftFriend', { pid, id: el.dataset.id }); closeModal(); },
+      back: openVisitor,
+    }),
+    confess: () => {
+      showModal(`<h3>${ic('heart', 22)} ドキドキ…</h3><div class="pair">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, 'normal', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>
+        <p>「あのね… ${esc(v.card.name)}の こと、すきなんだ」</p>`, {}, true);
+      setTimeout(() => { closeModal(); dispatch('confess', { pid }); }, 1800);
+    },
     bye: () => { closeModal(); dispatch('sendHome'); },
   });
 }
+
+// ---- かんけいの イベント ----
+bus.on('kenka', d => setTimeout(() => {
+  showModal(`<h3>${ic('angry', 22)} けんかに なっちゃった！</h3>
+    <p>${esc(d.name)}と ${esc(d.why)}…</p>
+    <div class="pair">${squidSVG(G.state.stage, 'sad', G.state.form, G.state.inv.hat, G.state.sp)}${G.visitor ? squidSVG(G.visitor.card.stage, 'sad', G.visitor.card.form, G.visitor.card.hat, G.visitor.card.sp || 'momo') : ''}</div>
+    <p>どうする？</p>
+    <div class="row"><button class="btn" data-a="sorry">${ic('heart', 18)} すぐに ごめんねを いう</button></div>
+    <div class="row"><button class="btn gray" data-a="close">すこし じかんを おく</button></div>`, {
+    sorry: () => { closeModal(); dispatch('apologize', { pid: d.pid }); },
+  });
+  beep(220, .2); setTimeout(() => beep(180, .25), 200);
+}, 200));
+bus.on('relchange', d => {
+  if (!d.up) return;
+  const msg = { tomodachi: 'ともだちに なった！', nakayoshi: 'なかよしに なった！', shinyu: 'しんゆうに なった！', koibito: 'こいびとに なった！' }[d.after];
+  if (!msg) return;
+  setTimeout(() => {
+    const v = G.visitor, S = G.state;
+    showModal(`<h3>${ic(d.after === 'koibito' ? 'heart' : 'party', 22)} ${esc(d.name)}と ${msg}</h3>
+      ${v ? `<div class="pair ${d.after === 'koibito' ? 'love' : ''}">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, 'happy', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>` : ''}
+      <p>${{ tomodachi: 'いっしょに あそぶのが たのしく なってきた！', nakayoshi: 'ないしょの はなしも できる なかに なったよ', shinyu: 'なにが あっても みかたで いてくれる、たいせつな ともだち！', koibito: 'ふたりは ラブラブ！ これからも なかよくね' }[d.after]}</p>${closeBtn()}`);
+    fx('heart'); fx(d.after === 'koibito' ? 'heart' : 'sparkle', 34); beep(880, .1); setTimeout(() => beep(1180, .14), 140);
+  }, 250);
+});
+bus.on('confess', d => setTimeout(() => {
+  const v = G.visitor, S = G.state; if (!v) return;
+  showModal(`<h3>${ic('heart', 22)} ${esc(d.name)}が もじもじ してる…</h3>
+    <div class="pair">${squidSVG(S.stage, 'normal', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, 'happy', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>
+    <p>「あのね… ずっと いっしょに いたいな。<br>こいびとに なってくれる？」</p>
+    <div class="row"><button class="btn" data-a="yes">${ic('heart', 18)} うん！</button><button class="btn gray" data-a="no">しんゆうで いよう</button></div>`, {
+    yes: () => { closeModal(); dispatch('answerConfess', { pid: d.pid, yes: true }); },
+    no: () => { closeModal(); dispatch('answerConfess', { pid: d.pid, yes: false }); },
+  }, true);
+}, 200));
 
 /* ---------------- なまえ・リセット ---------------- */
 export function askName() {
@@ -468,6 +543,7 @@ $('actions').addEventListener('click', e => {
   else if (k === 'check') openCheck();
   else dispatch(k);
 });
+$('vchip').onclick = () => { beep(620, .05); openVisitor(); };
 $('messes').addEventListener('click', e => { const m = e.target.closest('.mess'); if (m) dispatch('cleanOne', { i: +m.dataset.i }); });
 
 /* ---------------- 描画 ---------------- */
@@ -534,14 +610,18 @@ export function render() {
     wrap.style.left = v.pos + '%';
     wrap.classList.toggle('glow', c.stage === 'adult' && !!FORMS[c.form]?.glow);
     wrap.dataset.sp = c.sp || 'momo';
-    const key = [c.pid, c.stage, c.form, c.hat, c.sp].join('|');
+    const rr = relOf(c.pid), vm = rr.kenka ? 'sad' : 'happy';
+    const key = [c.pid, c.stage, c.form, c.hat, c.sp, vm, relStage(rr)].join('|');
     if (wrap.dataset.key !== key) {
-      wrap.querySelector('.squid-inner').innerHTML = c.stage === 'egg' ? eggSVG(60, c.sp) : squidSVG(c.stage, 'happy', c.form, c.hat, c.sp || 'momo');
-      wrap.querySelector('.tag').textContent = c.name;
+      wrap.querySelector('.squid-inner').innerHTML = c.stage === 'egg' ? eggSVG(60, c.sp) : squidSVG(c.stage, vm, c.form, c.hat, c.sp || 'momo');
+      wrap.querySelector('.tag').innerHTML = `${esc(c.name)}${rr.kenka ? ic('angry', 11) : relHearts(rr).replace(/width="13" height="13"/g, 'width="10" height="10"')}`;
       wrap.dataset.key = key;
     }
     wrap.onclick = openVisitor;
-  } else vh.innerHTML = '';
+    const chip = $('vchip'), rr2 = relOf(c.pid);
+    chip.innerHTML = `${ic('squid', 14)} ${esc(c.name)} ${rr2.kenka ? ic('angry', 12) : relHearts(rr2).replace(/width="13" height="13"/g, 'width="11" height="11"')}`;
+    chip.classList.add('show');
+  } else { vh.innerHTML = ''; $('vchip').classList.remove('show'); }
 
   // need bubble
   let n = '';

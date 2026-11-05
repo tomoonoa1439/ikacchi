@@ -246,3 +246,20 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .squid-wrap[data-sp="niji"] svg{filter:drop-shadow(0 0 6px rgba(255,200,240,.9))}
 .neonline{animation:tw 1.6s infinite}
 .sprout{transform-box:fill-box;transform-origin:50% 100%;animation:sway 3s ease-in-out infinite}
+/* かんけい */
+.rel{display:inline-flex;align-items:center;gap:1px;font-size:10px;font-weight:800;padding:1px 7px;border-radius:99px;background:#efe2c5;color:var(--sub);vertical-align:2px}
+.rel em{font-style:normal;color:var(--red);margin-left:3px}
+.rel-tomodachi{background:#e2f3e6;color:#4f9a5a}.rel-nakayoshi{background:#fff1d6;color:#c98b1a}
+.rel-shinyu{background:#e6efff;color:#4e6fc4}.rel-koibito{background:#ffe3ea;color:#e2667f}
+.relbox{display:flex;flex-direction:column;align-items:center;gap:4px;margin:4px 0 10px}
+.relbox .bar.sm{width:160px}.relbox small{font-size:11px;color:var(--sub);font-weight:700}
+.vgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.vgrid .choice{flex-direction:column;text-align:center;gap:2px;padding:10px 6px}
+.choice.love{border-color:#f3b6c4;background:#fff5f7}
+.kenka{color:var(--red)!important}
+.pair{display:flex;justify-content:center;align-items:flex-end;gap:6px;margin:6px 0}
+.pair svg{width:80px;height:auto;overflow:visible}
+.pair.love{animation:bob 1.4s ease-in-out infinite}
+.friend .tag{display:flex;align-items:center;gap:1px}
+.vchip{position:absolute;left:10px;top:10px;z-index:6;display:none;align-items:center;gap:3px;border:none;background:rgba(255,255,255,.92);border-radius:99px;padding:4px 10px;font-size:11px;font-weight:800;box-shadow:0 2px 0 rgba(0,0,0,.1)}
+.vchip.show{display:flex}

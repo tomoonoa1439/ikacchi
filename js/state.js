@@ -4,7 +4,7 @@
 import { CONFIG, SPECIES } from './config.js';
 
 // 実行中の共有オブジェクト（state 以外は セーブしない）
-export const G = { state: null, busy: false, speed: 1, sound: true, visitor: null, lastPet: 0, lastTalk: 0 };
+export const G = { state: null, modalOpen: false, busy: false, speed: 1, sound: true, visitor: null, lastPet: 0, lastTalk: 0 };
 
 // かんたんな イベントバス（UI ⇄ ロジックを切りはなす）
 const handlers = {};
@@ -70,7 +70,7 @@ export function newState() {
     // ---- きろく ----
     log: [], lastSaved: Date.now(), lastDay: dayKey(), rainbowDay: '',
     // ---- ともだち ----
-    friends: [], friendPlay: {}, redeemed: [],
+    friends: [], friendPlay: {}, redeemed: [], rel: {},
   };
 }
 
