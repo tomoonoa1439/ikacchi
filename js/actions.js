@@ -119,11 +119,11 @@ const A = {
   travel() {
     const S = G.state;
     S.album.unshift({ gen: S.gen, name: S.name || 'イカッチ', sp: S.sp, form: S.form, hat: S.inv.hat, days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now() });
-    const keep = { seenSp: S.seenSp, player: S.player, rel: {}, shells: S.shells + 20, inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
+    const keep = { seenSp: S.seenSp, seenPer: S.seenPer, seenForm: S.seenForm, player: S.player, rel: {}, shells: S.shells + 20, inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
                    album: S.album.slice(0, 30), log: S.log, gen: S.gen + 1, rainbowDay: S.rainbowDay, lastDay: S.lastDay };
     const parent = { name: S.name || 'イカッチ', per: S.per };
     G.state = Object.assign(newState(), keep);
-    G.state.tr = inheritTraits(S.tr); G.state.per = perLabel(G.state.tr);
+    G.state.tr = inheritTraits(S.tr); G.state.per = perLabel(G.state.tr, null, G.state.gene);
     G.state.parent = parent;
     G.visitor = null;
     log(`${keep.gen}だいめの たまごが やってきた`);

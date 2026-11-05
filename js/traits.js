@@ -36,6 +36,16 @@ export const presetTraits = per => fillTraits(OLD_PRESET[per] || {});
 // おやの せいかくが 3わり うけつがれる
 export const inheritTraits = parent => Object.fromEntries(TKEYS.map(k => [k, Math.round((parent?.[k] ?? 50) * .3 + rand(38, 62) * .7)]));
 
+// ---------- ひみつの たいしつ（1ぴきずつ ちがう。だれにも みえない）----------
+//   sens: その パラメータの かわりやすさ  contrary: あまのじゃくな パラメータ（さかさに うごく）
+//   bias: せいかくの タイプへの なりやすさ
+export function newGene() {
+  const sens = Object.fromEntries(TKEYS.map(k => [k, Math.round(rand(.3, 2) * 100) / 100]));
+  const contrary = Math.random() < .4 ? pick(TKEYS) : null;
+  const bias = Object.fromEntries(Object.keys(PERSONALITY).map(id => [id, Math.round(rand(-160, 160))]));
+  return { sens, contrary, bias };
+}
+
 // ---------- せいかくの タイプ ----------
 function typeScore(t, p) {
   const ks = Object.keys(p);
@@ -43,10 +53,10 @@ function typeScore(t, p) {
   for (const k of ks) sum += (t[k] - p[k]) ** 2;
   return -sum / ks.length;
 }
-export function perLabel(t, current = null) {
+export function perLabel(t, current = null, gene = null) {
   let best = 'mypace', bs = -Infinity;
   for (const [id, def] of Object.entries(PERSONALITY)) {
-    const sc = typeScore(t, def.p) + (id === current ? 60 : 0);   // いまの タイプは すこし つよい（ころころ かわらない）
+    const sc = typeScore(t, def.p) + (id === current ? 60 : 0) + (gene?.bias?.[id] || 0);   // いまの タイプは すこし つよい（ころころ かわらない）
     if (sc > bs) { bs = sc; best = id; }
   }
   return best;
@@ -96,11 +106,15 @@ export function nudge(d, live = true) {
     if (!(k in S.tr)) continue;
     const v = S.tr[k], dir = Math.sign(d[k]), away = (v - 50) * dir > 0;
     const f = away ? Math.max(.3, 1 - Math.abs(v - 50) / 70) : 1;
-    S.tr[k] = Math.round(clamp(v + d[k] * f * SPEED * pl) * 10) / 10;
+    const g = S.gene || {}, sens = g.sens?.[k] ?? 1, flip = g.contrary === k ? -.6 : 1;
+    // おなじ かかわりでも、ひと つ ひとつ すこし ちがう（きまぐれな こころ）
+    const noise = .6 + Math.random() * .8;
+    S.tr[k] = Math.round(clamp(v + d[k] * f * SPEED * pl * sens * flip * noise) * 10) / 10;
   }
-  const next = perLabel(S.tr, before);
+  const next = perLabel(S.tr, before, S.gene);
   if (next !== before) {
     S.per = next;
+    if (S.stage === 'baby') return;   // あかちゃんの うちは ないしょ
     const from = PERSONALITY[before]?.name || '？', to = PERSONALITY[next].name;
     S.log.unshift({ t: Date.now(), text: `せいかくが「${from}」から「${to}」に かわった` });
     remember(`「${to}」に なった`, 2);

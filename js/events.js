@@ -191,9 +191,9 @@ export const EVENTS = [
 export function eventTick() {
   const S = G.state;
   if (!S || S.stage === 'egg' || S.sleeping || S.paused || S.travelReady || G.busy || G.modalOpen || G.visitor) return;
-  if (S.nextEventAt == null) S.nextEventAt = S.ageMin + rand(8, 20);
+  if (S.nextEventAt == null || S.nextEventAt - S.ageMin > 400) S.nextEventAt = S.ageMin + rand(60, 180);
   if (S.ageMin < S.nextEventAt) return;
-  S.nextEventAt = S.ageMin + rand(18, 45);   // つぎの できごとまで（ゲームの じかん）
+  S.nextEventAt = S.ageMin + rand(150, 360);   // つぎの できごとまで（ゲームの じかん 2.5〜6じかん）
   const t = S.tr;
   const opts = EVENTS.map(e => ({ e, w: e.w(S, t) })).filter(x => x.w > 0);
   let r = Math.random() * opts.reduce((a, x) => a + x.w, 0);

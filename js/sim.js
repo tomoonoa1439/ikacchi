@@ -184,8 +184,8 @@ function grow(st, live) {
   S.stage = st.id;
   S.weight += baseWeight(st.id) - baseWeight(prev);
   S.shells += 10;
-  if (st.id === 'child') S.care = { good: 0, bad: 0, feed: 0, play: 0 };
-  if (st.id === 'adult') S.form = decideForm(S.care, S);
+  if (st.id === 'child') { S.care = { good: 0, bad: 0, feed: 0, play: 0 }; if (live) setTimeout(() => bus.emit('perreveal'), 3500); }
+  if (st.id === 'adult') { S.form = decideForm(S.care, S); S.seenForm ||= []; if (!S.seenForm.includes(S.form)) S.seenForm.push(S.form); }
   const nm = stageName(S);
   log(`${nm}に せいちょうした！`); remember(`${nm}に なった`, st.id === 'adult' ? 3 : 2);
   if (live) { say(live, `${nm}に せいちょうした！`); bus.emit('fx', 'sparkle'); bus.emit('fx', 'party', 30); bus.emit('beep', 880, .15); }
