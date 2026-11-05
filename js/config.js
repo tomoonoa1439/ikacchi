@@ -85,6 +85,17 @@ export const SPECIES = {
             desc: 'めったに うまれない まぼろしの イカ。' },
 };
 
+// ---- せいかく（うまれたときに ランダム。ともだちとの ふるまいが かわる）----
+//   kenka: けんかの しやすさ  sorry: じぶんから あやまる  forgive: ゆるす  share: おすそわけ
+//   confess: こくはくする ゆうき  accept: こくはくを うけいれる  talk: おしゃべり  play: あそびに さそう
+export const PERSONALITY = {
+  yasashii:  { name: 'やさしい',     kenka: .6,  sorry: 1.5, forgive: 1.2, share: 2,  confess: 1,   accept: 1.2, talk: 1,   play: 1,   desc: 'おこりにくくて、すぐ あやまれる' },
+  genki:     { name: 'げんき',       kenka: 1.1, sorry: 1,   forgive: 1,   share: 1,  confess: 1.4, accept: 1,   talk: 1.4, play: 1.6, desc: 'いつも あそびたくて うずうず' },
+  hazukashi: { name: 'はずかしがり', kenka: .8,  sorry: .9,  forgive: 1,   share: 1,  confess: .4,  accept: .8,  talk: .6,  play: .8,  desc: 'なかなか じぶんの きもちを いえない' },
+  ijippari:  { name: 'いじっぱり',   kenka: 1.5, sorry: .5,  forgive: .6,  share: .7, confess: .8,  accept: 1,   talk: 1,   play: 1,   desc: 'すぐ ムキに なって、ごめんねが にがて' },
+  mypace:    { name: 'マイペース',   kenka: .9,  sorry: 1,   forgive: 1,   share: 1,  confess: 1,   accept: 1,   talk: .8,  play: .9,  desc: 'のんびりやで ゆうゆう じてき' },
+};
+
 // ---- おとなの タイプ（こどもの ころの おせわで きまる。しゅるいの まえに つく）----
 export const FORMS = {
   surume: { name: 'のびのびタイプ', prefix: '',         hint: 'ふつうに そだつと' },

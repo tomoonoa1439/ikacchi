@@ -5,7 +5,7 @@
 import { CONFIG, FOODS, HATS, DECOR, FINDS } from './config.js';
 import { G, bus, clamp, rand, pick, dayKey, isNight, newState, migrate } from './state.js';
 import { care, addBond, log, weatherToday, stageName, baseWeight, bondLevel, wake } from './sim.js';
-import { relOf, relStage, addRelPt, daily, canConfess, LINES, REL_RULE } from './social.js';
+import { relOf, relStage, addRelPt } from './social.js';
 
 const say = t => bus.emit('say', t);
 const fx = (c, d) => bus.emit('fx', c, d);
@@ -15,7 +15,7 @@ const asleepBlock = () => { if (G.state.sleeping) { say('Zzz…（ねてるよ�
 export function dispatch(type, p = {}) {
   const fn = A[type];
   if (!fn) { console.warn('unknown action', type); return; }
-  if (G.busy && !['cleanOne', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave', 'travel', 'answerConfess'].includes(type)) return;
+  if (G.busy && !['cleanOne', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave', 'travel'].includes(type)) return;
   const r = fn(p);
   bus.emit('changed', type);
   return r;
@@ -226,88 +226,6 @@ const A = {
     beep(780, .1);
   },
   sendHome() { if (G.visitor) say(`${G.visitor.card.name} は かえっていった`); G.visitor = null; },
-  friendPlay({ pid }) {
-    const S = G.state, f = S.friends.find(x => x.pid === pid);
-    if (asleepBlock()) return false;
-    if (relOf(pid).kenka) { say(`${f.name}は まだ おこってて あそんでくれない…`); return false; }
-    if (S.friendPlay[pid] === dayKey()) { say('きょうは もう いっぱい あそんだね'); return false; }
-    S.friendPlay[pid] = dayKey();
-    S.happy = clamp(S.happy + 15); addBond(3); S.shells += 3;
-    addRelPt(pid, 8, f.name);
-    log(`${f.name} と いっしょに あそんだ`);
-    say(`${f.name} と あそんで たのしかった！`); fx('note'); fx('heart', 30);
-    return true;
-  },
-  // ---------- かんけい ----------
-  talkFriend({ pid }) {
-    const S = G.state, f = S.friends.find(x => x.pid === pid), r = relOf(pid);
-    if (asleepBlock()) return null;
-    if (r.kenka) return `${f.name}「${pick(LINES.kenka)}」`;
-    daily(r);
-    if (r.talkN >= REL_RULE.talkPerDay) return `${f.name}「きょうは いっぱい おしゃべりしたね」`;
-    r.talkN++;
-    addRelPt(pid, 2, f.name);
-    return `${f.name}「${pick(LINES[relStage(r)])}」`;
-  },
-  giftFriend({ pid, id }) {
-    const S = G.state, f = S.friends.find(x => x.pid === pid), r = relOf(pid), food = FOODS.find(x => x.id === id);
-    if (!(S.inv.food[id] > 0)) { say('もってないよ'); return false; }
-    daily(r);
-    if (!r.kenka && r.giftN >= REL_RULE.giftPerDay) { say(`${f.name}「きょうは もう もらったよ、ありがと！」`); return false; }
-    S.inv.food[id]--; r.giftN++;
-    if (r.kenka) {
-      r.kenka = false; addRelPt(pid, 12, f.name);
-      log(`${food.name}を あげて ${f.name}と なかなおりした`);
-      say(`${f.name}「…ありがと。さっきは ごめんね」なかなおり できた！`); fx('heart'); fx('sparkle', 30);
-    } else {
-      addRelPt(pid, 10, f.name);
-      log(`${f.name}に ${food.name}を あげた`);
-      say(`${f.name}「わあ、${food.name}だ！ ありがとう！」`); fx('gift');
-    }
-    return true;
-  },
-  apologize({ pid }) {
-    const S = G.state, f = S.friends.find(x => x.pid === pid), r = relOf(pid);
-    if (!r.kenka) return false;
-    const wait = REL_RULE.sorryCooldownMin * 60000 - (Date.now() - r.lastSorry);
-    if (wait > 0) { say(`${f.name}は まだ むこうを むいてる…（すこし まってから もういちど）`); return false; }
-    r.lastSorry = Date.now();
-    const chance = .45 + S.discipline / 250 + (S.happy > 60 ? .15 : 0) + (relStage(r) === 'shinyu' || r.lover ? .15 : 0);
-    if (Math.random() < chance) {
-      r.kenka = false; addRelPt(pid, 15, f.name); addBond(1);
-      log(`${f.name}に ごめんねを いって なかなおりした`);
-      say(`「ごめんね」「ううん、ぼくも ごめん」なかなおり できた！ まえより なかよしに なった きがする`); fx('heart'); fx('sparkle', 30);
-      return true;
-    }
-    say(`${f.name}「……まだ ゆるさないもん」`); fx('sweat');
-    return false;
-  },
-  confess({ pid }) {
-    const S = G.state, f = S.friends.find(x => x.pid === pid), r = relOf(pid);
-    if (!canConfess(r, f)) return false;
-    r.asked = true;
-    if (r.pt >= REL_RULE.confess) {
-      r.lover = true; addRelPt(pid, 0, f.name);
-      log(`${f.name}に すきって つたえて こいびとに なった`);
-      bus.emit('relchange', { pid, before: 'shinyu', after: 'koibito', up: true, name: f.name });
-      return true;
-    }
-    addRelPt(pid, -3, f.name);
-    say(`${f.name}「えっ…！ ごめんね、まだ しんゆうで いたいな」`); fx('sweat');
-    return false;
-  },
-  answerConfess({ pid, yes }) {
-    const S = G.state, f = S.friends.find(x => x.pid === pid), r = relOf(pid);
-    if (yes) {
-      r.lover = true;
-      log(`${f.name}から こくはくされて こいびとに なった`);
-      bus.emit('relchange', { pid, before: 'shinyu', after: 'koibito', up: true, name: f.name });
-    } else {
-      say(`${f.name}「…そっか。これからも しんゆうで いてね！」`);
-      log(`${f.name}の こくはくに 「しんゆうで いよう」と こたえた`);
-    }
-  },
-
   // プレゼント：もちものを へらして ギフトデータを つくる（コード化は net.js）
   makeGift({ kind, id, to }) {
     const S = G.state;
@@ -347,5 +265,5 @@ function rollFind() {
 // ともだちに わたす「カード」= じぶんのイカの みため
 export function makeCard() {
   const S = G.state;
-  return { pid: S.player.id, owner: S.player.name, name: S.name || 'イカッチ', sp: S.sp, stage: S.stage, form: S.form, hat: S.inv.hat, title: stageName(S), t: Date.now() };
+  return { pid: S.player.id, owner: S.player.name, name: S.name || 'イカッチ', sp: S.sp, per: S.per, stage: S.stage, form: S.form, hat: S.inv.hat, title: stageName(S), t: Date.now() };
 }

@@ -263,3 +263,9 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .friend .tag{display:flex;align-items:center;gap:1px}
 .vchip{position:absolute;left:10px;top:10px;z-index:6;display:none;align-items:center;gap:3px;border:none;background:rgba(255,255,255,.92);border-radius:99px;padding:4px 10px;font-size:11px;font-weight:800;box-shadow:0 2px 0 rgba(0,0,0,.1)}
 .vchip.show{display:flex}
+.pers{display:flex;justify-content:center;gap:28px;font-size:11px;font-weight:700;color:var(--sub);margin-top:-4px}
+.pers span{display:flex;flex-direction:column;align-items:center}
+.pers b{color:var(--ink);font-size:12px}
+.log.mini{font-size:11px;margin:0 0 6px;max-height:90px;overflow:auto}
+.log.mini div{padding:3px 2px}
+.love .pair{animation:bob 1.4s ease-in-out infinite}

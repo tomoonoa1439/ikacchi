@@ -7,7 +7,7 @@ import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, li
 import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
 import { net, makeLink } from './net.js';
-import { REL, REL_RULE, relOf, relStage, canConfess } from './social.js';
+import { REL, REL_RULE, relOf, relStage, perOf, friendPer } from './social.js';
 import { ic, fillIcons } from './icons.js';
 
 const $ = id => document.getElementById(id);
@@ -52,7 +52,13 @@ let mh = {}, modalLock = false;
 export function showModal(html, handlers = {}, lock = false) {
   $('modal').innerHTML = html; mh = handlers; modalLock = lock; $('modalBack').classList.add('show'); G.modalOpen = true;
 }
-export function closeModal() { $('modalBack').classList.remove('show'); mh = {}; modalLock = false; G.modalOpen = false; }
+export function closeModal() {
+  $('modalBack').classList.remove('show'); mh = {}; modalLock = false; G.modalOpen = false;
+  if (mq.length) setTimeout(mq.shift(), 180);
+}
+// できごとの おしらせは じゅんばんに だす
+const mq = [];
+function eventModal(fn) { if (G.modalOpen) mq.push(fn); else fn(); }
 $('modal').addEventListener('click', ev => {
   const el = ev.target.closest('[data-a]'); if (!el || el.disabled) return;
   if (el.dataset.a === 'close') return closeModal();
@@ -389,6 +395,7 @@ function openCheck() {
     <div class="check">
       <div><span>なまえ</span><b>${esc(S.name || 'イカッチ')}（${S.gen}だいめ）</b></div>
       <div><span>しゅるい</span><b>${speciesOf(S.sp).name}</b></div>
+      <div><span>せいかく</span><b>${perOf(S.per).name} <small>${perOf(S.per).desc}</small></b></div>
       <div><span>すがた</span><b>${stageName(S)}</b></div>
       <div><span>ねんれい</span><b>${ageYears(S)}さい <small>（うまれて ${S.ageMin < 60 ? Math.floor(S.ageMin) + 'ふん' : (S.ageMin / 60).toFixed(1) + 'じかん'}）</small></b></div>
       <div><span>たいじゅう</span><b>${S.weight}g ${over > 10 ? '<em>ふとりぎみ</em>' : ''}</b></div>
@@ -419,81 +426,76 @@ function openTravel() {
 function openVisitor() {
   const v = G.visitor; if (!v) return;
   const S = G.state, pid = v.card.pid, r = relOf(pid), st = relStage(r);
-  const played = S.friendPlay[pid] === dayKey();
-  const foods = FOODS.filter(f => f.price > 0 && S.inv.food[f.id] > 0);
+  const me = S.name || 'イカッチ', you = v.card.name;
   const meter = st === 'koibito' ? 100 : st === 'shinyu' ? Math.min(100, (r.pt - 80) * 5) : st === 'nakayoshi' ? (r.pt - 50) / 30 * 100 : st === 'tomodachi' ? (r.pt - 20) / 30 * 100 : r.pt / 20 * 100;
-  showModal(`<h3>${ic('squid', 20)} ${esc(v.card.name)}</h3>
+  const recent = S.log.filter(l => l.text.includes(you)).slice(0, 4);
+  const doing = r.kenka ? 'けんかちゅう… おたがい そっぽを むいている'
+    : S.sleeping ? `${me}は ねている`
+    : S.friendPlay[pid] === dayKey() ? 'きょうは もう いっぱい あそんだ。のんびり ちゅう'
+    : r.lover ? 'ふたりで よりそって いる' : 'なにして あそぶか かんがえてる みたい';
+  showModal(`<h3>${ic('squid', 20)} ${esc(you)}</h3>
     <p>${esc(v.card.owner || 'ともだち')}の ${esc(v.card.title || '')}</p>
+    <div class="pair">${squidSVG(S.stage, r.kenka ? 'sad' : 'happy', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, r.kenka ? 'sad' : 'happy', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>
+    <div class="pers"><span>${esc(me)}<b>${perOf(S.per).name}</b></span><span>${esc(you)}<b>${perOf(friendPer(v.card)).name}</b></span></div>
     <div class="relbox">${relBadge(pid)}<div class="bar sm"><i style="width:${meter}%;background:var(--accent)"></i></div><small>${nextInfo(r)}</small></div>
-    ${r.kenka ? `<p class="kenka">けんかちゅう… ${esc(v.card.name)}は むこうを むいている</p>
-      <div class="row"><button class="btn" data-a="sorry">${ic('heart', 18)} ごめんねを いう</button></div>
-      ${foods.length ? `<div class="row"><button class="btn sm" data-a="giftMenu">${ic('gift', 16)} プレゼントで なかなおり</button></div>` : ''}
-      <p class="note">じかんを おくと しぜんに なおることも あるよ</p>`
-    : `<div class="vgrid">
-      <button class="choice" data-a="play" ${played ? 'disabled' : ''}><span class="ic">${ic('note', 26)}</span><span class="grow">${played ? 'きょうは あそんだ' : 'いっしょに あそぶ'}<small>1にち 1かい</small></span></button>
-      <button class="choice" data-a="talk"><span class="ic">${ic('friends', 26)}</span><span class="grow">おしゃべり<small>のこり ${Math.max(0, REL_RULE.talkPerDay - (r.day === dayKey() ? r.talkN : 0))}かい</small></span></button>
-      <button class="choice" data-a="giftMenu" ${foods.length ? '' : 'disabled'}><span class="ic">${ic('gift', 26)}</span><span class="grow">プレゼント<small>${foods.length ? 'ごはんを あげる' : 'ごはんが ないよ'}</small></span></button>
-      ${canConfess(r, v.card) ? `<button class="choice love" data-a="confess"><span class="ic">${ic('heart', 26)}</span><span class="grow">すきって つたえる<small>ドキドキ…</small></span></button>` : ''}
-    </div>`}
-    <div class="row"><button class="btn gray" data-a="bye">${ic('hand', 18)} バイバイ</button><button class="btn gray" data-a="close">とじる</button></div>`, {
-    play: () => { closeModal(); dispatch('friendPlay', { pid }); },
-    talk: () => { const line = dispatch('talkFriend', { pid }); if (line) say(line); openVisitor(); },
-    sorry: () => { const ok = dispatch('apologize', { pid }); ok ? closeModal() : openVisitor(); },
-    giftMenu: () => showModal(`<h3>${ic('gift', 20)} なにを あげる？</h3><div class="choices">${foods.map(f => `
-      <button class="choice" data-a="give" data-id="${f.id}"><span class="ic">${ic(f.ic, 28)}</span><span class="grow">${f.name}<small>もってる ${S.inv.food[f.id]}</small></span></button>`).join('')}</div>
-      <div class="row"><button class="btn gray" data-a="back">もどる</button></div>`, {
-      give: el => { dispatch('giftFriend', { pid, id: el.dataset.id }); closeModal(); },
-      back: openVisitor,
-    }),
-    confess: () => {
-      showModal(`<h3>${ic('heart', 22)} ドキドキ…</h3><div class="pair">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, 'normal', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>
-        <p>「あのね… ${esc(v.card.name)}の こと、すきなんだ」</p>`, {}, true);
-      setTimeout(() => { closeModal(); dispatch('confess', { pid }); }, 1800);
-    },
+    <p class="${r.kenka ? 'kenka' : ''}">いま：${doing}</p>
+    ${recent.length ? `<div class="log mini">${recent.map(l => `<div>${esc(l.text)}</div>`).join('')}</div>` : ''}
+    <p class="note">なにを するかは イカたちが じぶんで きめるよ。<br>ごきげんや しつけが いいと、けんかしにくく、すなおに あやまれる</p>
+    <div class="row"><button class="btn gray" data-a="bye">${ic('hand', 18)} かえってもらう</button><button class="btn" data-a="close">みまもる</button></div>`, {
     bye: () => { closeModal(); dispatch('sendHome'); },
   });
 }
 
-// ---- かんけいの イベント ----
-bus.on('kenka', d => setTimeout(() => {
+// ---- かんけいの イベント（えらぶ ボタンは なし。けっかを みまもるだけ）----
+const pairOf = (m1, m2) => { const S = G.state, v = G.visitor; return `<div class="pair">${squidSVG(S.stage, m1, S.form, S.inv.hat, S.sp)}${v ? squidSVG(v.card.stage, m2, v.card.form, v.card.hat, v.card.sp || 'momo') : ''}</div>`; };
+bus.on('kenka', d => setTimeout(() => eventModal(() => {
   showModal(`<h3>${ic('angry', 22)} けんかに なっちゃった！</h3>
-    <p>${esc(d.name)}と ${esc(d.why)}…</p>
-    <div class="pair">${squidSVG(G.state.stage, 'sad', G.state.form, G.state.inv.hat, G.state.sp)}${G.visitor ? squidSVG(G.visitor.card.stage, 'sad', G.visitor.card.form, G.visitor.card.hat, G.visitor.card.sp || 'momo') : ''}</div>
-    <p>どうする？</p>
-    <div class="row"><button class="btn" data-a="sorry">${ic('heart', 18)} すぐに ごめんねを いう</button></div>
-    <div class="row"><button class="btn gray" data-a="close">すこし じかんを おく</button></div>`, {
-    sorry: () => { closeModal(); dispatch('apologize', { pid: d.pid }); },
-  });
+    <p>${esc(G.state.name || 'イカッチ')}と ${esc(d.name)}は ${esc(d.why)}…</p>${pairOf('sad', 'sad')}
+    <p>ふたりは どうするかな…？ みまもろう</p>
+    <p class="note">ごきげんが よくて しつけが できていると、じぶんから あやまれるかも</p>${closeBtn('みまもる')}`);
   beep(220, .2); setTimeout(() => beep(180, .25), 200);
-}, 200));
+}), 200));
+bus.on('makeup', d => setTimeout(() => eventModal(() => {
+  showModal(`<h3>${ic('heart', 22)} なかなおり できた！</h3>${pairOf('happy', 'happy')}
+    <p>${esc(d.from)}「…さっきは ごめんね」<br>${esc(d.to)}「ううん、こっちこそ ごめん！」</p>
+    <p class="note">なかなおりして まえより なかよしに なったみたい</p>${closeBtn()}`);
+  fx('heart'); fx('sparkle', 30); beep(880, .1);
+}), 200));
+bus.on('confess', d => setTimeout(() => eventModal(() => {
+  showModal(`<h3>${ic('heart', 22)} ドキドキ…</h3>${pairOf('normal', 'normal')}
+    <p>${esc(d.from)}が もじもじ しながら…<br>「あのね… ずっと いっしょに いたいな。<br>こいびとに なってくれる？」</p><p class="note">${esc(d.to)}の こたえは…</p>`, {}, true);
+  setTimeout(() => {
+    if (d.ok) {
+      showModal(`<h3>${ic('heart', 22)} こいびとに なった！</h3><div class="love">${pairOf('happy', 'happy')}</div>
+        <p>${esc(d.to)}「…うん！ わたしも ずっと そう おもってた」</p><p class="note">ふたりは ラブラブ！ これからも なかよくね</p>${closeBtn()}`);
+      fx('heart'); fx('heart', 34); fx('sparkle', -30); beep(880, .1); setTimeout(() => beep(1180, .14), 140);
+    } else {
+      showModal(`<h3>${ic('sweat', 22)} ざんねん…</h3>${pairOf('sad', 'normal')}
+        <p>${esc(d.to)}「ごめんね… まだ しんゆうで いたいな」</p><p class="note">もっと なかよしに なったら、また チャンスが あるかも</p>${closeBtn()}`);
+      beep(300, .15);
+    }
+    render(); save();
+  }, 2600);
+}), 200));
 bus.on('relchange', d => {
   if (!d.up) return;
   const msg = { tomodachi: 'ともだちに なった！', nakayoshi: 'なかよしに なった！', shinyu: 'しんゆうに なった！', koibito: 'こいびとに なった！' }[d.after];
   if (!msg) return;
-  setTimeout(() => {
+  setTimeout(() => eventModal(() => {
     const v = G.visitor, S = G.state;
     showModal(`<h3>${ic(d.after === 'koibito' ? 'heart' : 'party', 22)} ${esc(d.name)}と ${msg}</h3>
       ${v ? `<div class="pair ${d.after === 'koibito' ? 'love' : ''}">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, 'happy', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>` : ''}
       <p>${{ tomodachi: 'いっしょに あそぶのが たのしく なってきた！', nakayoshi: 'ないしょの はなしも できる なかに なったよ', shinyu: 'なにが あっても みかたで いてくれる、たいせつな ともだち！', koibito: 'ふたりは ラブラブ！ これからも なかよくね' }[d.after]}</p>${closeBtn()}`);
     fx('heart'); fx(d.after === 'koibito' ? 'heart' : 'sparkle', 34); beep(880, .1); setTimeout(() => beep(1180, .14), 140);
-  }, 250);
+  }), 250);
 });
-bus.on('confess', d => setTimeout(() => {
-  const v = G.visitor, S = G.state; if (!v) return;
-  showModal(`<h3>${ic('heart', 22)} ${esc(d.name)}が もじもじ してる…</h3>
-    <div class="pair">${squidSVG(S.stage, 'normal', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, 'happy', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>
-    <p>「あのね… ずっと いっしょに いたいな。<br>こいびとに なってくれる？」</p>
-    <div class="row"><button class="btn" data-a="yes">${ic('heart', 18)} うん！</button><button class="btn gray" data-a="no">しんゆうで いよう</button></div>`, {
-    yes: () => { closeModal(); dispatch('answerConfess', { pid: d.pid, yes: true }); },
-    no: () => { closeModal(); dispatch('answerConfess', { pid: d.pid, yes: false }); },
-  }, true);
-}, 200));
+
 
 /* ---------------- なまえ・リセット ---------------- */
 export function askName() {
   const S = G.state;
   if (S.stage === 'egg' || S.name) return;
-  showModal(`<h3>${ic('chick', 20)} ${speciesOf(S.sp).name}が うまれたよ！</h3>${speciesOf(S.sp).rare ? '<p><b class="rare">まぼろしの レアイカ！</b></p>' : ''}<div class="zsq hero">${squidSVG('baby', 'happy', null, null, S.sp)}</div><p>${speciesOf(S.sp).desc}<br>なまえを つけてあげよう</p>
+  showModal(`<h3>${ic('chick', 20)} ${speciesOf(S.sp).name}が うまれたよ！</h3>${speciesOf(S.sp).rare ? '<p><b class="rare">まぼろしの レアイカ！</b></p>' : ''}<div class="zsq hero">${squidSVG('baby', 'happy', null, null, S.sp)}</div><p>${speciesOf(S.sp).desc}<br>せいかくは「${perOf(S.per).name}」みたい<br>なまえを つけてあげよう</p>
     <input id="nameInput" maxlength="8" placeholder="イカッチ">
     <div class="row"><button class="btn" data-a="ok">けってい</button></div>`, { ok }, true);
   function ok() { S.name = ($('nameInput').value.trim() || 'イカッチ'); closeModal(); say(`ぼく ${S.name}！ よろしくね`); render(); save(); }
