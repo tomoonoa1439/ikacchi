@@ -536,6 +536,22 @@ $('resetBtn').onclick = () => showModal(`<h3>${ic('egg', 20)} さいしょから
   reset: () => { const keep = G.state.player; G.state = newState(); G.state.player = keep; G.visitor = null; closeModal(); say('あたらしい たまごが とどいた！'); render(); save(); },
 });
 $('moveBtn').onclick = () => openMove();
+$('stopBtn').onclick = () => {
+  if (G.state.paused) return dispatch('resume');
+  showModal(`<h3>${ic('pause', 22)} ストップする？</h3>
+    <p>がっこうや りょこうで おせわが できない ときに つかってね。</p>
+    <div class="check">
+      <div><span>おなか・トイレ・げんき</span><b>へらない</b></div>
+      <div><span>せいちょう・じゅみょう</span><b>とまる</b></div>
+      <div><span>おせわミス</span><b>つかない</b></div>
+      <div><span>アプリを とじている あいだ</span><b>とまったまま</b></div>
+    </div>
+    <p class="note">ストップちゅうは おせわも できないよ。「さいかいする」で もとに もどるよ</p>
+    <div class="row"><button class="btn gray" data-a="close">やめる</button><button class="btn" data-a="stop">${ic('pause', 16)} ストップ</button></div>`, {
+    stop: () => { closeModal(); dispatch('pause'); },
+  });
+};
+$('resumeBtn').onclick = () => dispatch('resume');
 $('speedBtn').onclick = () => { G.speed = G.speed === 1 ? 10 : G.speed === 10 ? 60 : 1; $('speedBtn').innerHTML = `${ic('fast', 12)} はやさ ×${G.speed}`; };
 $('soundBtn').onclick = () => { G.sound = !G.sound; $('soundBtn').innerHTML = G.sound ? `${ic('sound', 12)} おと ON` : `${ic('mute', 12)} おと OFF`; };
 
@@ -564,10 +580,11 @@ const MENU = [
   { k: 'diary', ic: 'diary', t: 'にっき', fn: openDiary },
 ];
 $('menu').innerHTML = MENU.map(m => `<button class="mbtn" data-k="${m.k}"><span>${ic(m.ic, 22)}</span>${m.t}</button>`).join('');
-$('menu').addEventListener('click', e => { const b = e.target.closest('.mbtn'); if (b) { beep(520, .05); MENU.find(m => m.k === b.dataset.k).fn(); } });
+$('menu').addEventListener('click', e => { const b = e.target.closest('.mbtn'); if (!b) return; beep(520, .05); if (G.state.paused && ['dig', 'friends'].includes(b.dataset.k)) { say('ストップちゅうだよ。さいかいしてね'); return; } MENU.find(m => m.k === b.dataset.k).fn(); });
 $('actions').addEventListener('click', e => {
   const b = e.target.closest('.act'); if (!b || b.disabled) return;
   beep(520, .05);
+  if (G.state.paused && b.dataset.k !== 'check') { say('ストップちゅうだよ。さいかいしてね'); return; }
   const k = b.dataset.k;
   if (k === 'feed') { if (G.state.sleeping) say('Zzz…（ねてるよ）'); else openFood(); }
   else if (k === 'play') { if (G.state.sleeping) say('Zzz…（ねてるよ）'); else openPlay(); }
@@ -632,6 +649,13 @@ export function render() {
     if (wrap.dataset.key !== key) { wrap.querySelector('.squid-inner').innerHTML = squidSVG(S.stage, m, S.form, S.inv.hat, S.sp); wrap.dataset.key = key; }
   }
   pet.firstChild.onclick = () => dispatch('pet');
+
+  // ストップ
+  $('pauseOv').classList.toggle('on', !!S.paused);
+  $('scene').classList.toggle('paused', !!S.paused);
+  const sb = $('stopBtn');
+  if (sb.dataset.p !== String(!!S.paused)) { sb.dataset.p = String(!!S.paused); sb.innerHTML = S.paused ? `${ic('play', 12)} さいかい` : `${ic('pause', 12)} ストップ`; sb.classList.toggle('on', !!S.paused); }
+  document.querySelectorAll('.act').forEach(b => b.classList.toggle('frozen', !!S.paused && b.dataset.k !== 'check'));
 
   // visitor
   const vh = $('visitor'), v = G.visitor;

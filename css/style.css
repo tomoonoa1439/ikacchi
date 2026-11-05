@@ -279,3 +279,12 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .helpgrid div{font-size:11px}.helpgrid b{font-size:11px;color:var(--ink)}
 .modal b.big{font-size:18px;color:var(--accent-d)}
 .check .trow{border:none;background:none;padding:1px 0;border-radius:0}
+/* ストップ */
+.pauseov{position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;background:rgba(40,50,80,.45);backdrop-filter:grayscale(.8)}
+.pauseov.on{display:flex}
+.pbox{background:var(--panel);border:4px solid #fff;box-shadow:0 0 0 3px var(--line);border-radius:22px;padding:14px 22px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.pbox b{font-size:16px}.pbox small{font-size:11px;color:var(--sub);font-weight:700;margin-bottom:6px}
+.scene.paused .squid-inner,.scene.paused .tent,.scene.paused .weed,.scene.paused .bub,.scene.paused .egg-inner,.scene.paused .cloud,.scene.paused .rain i{animation-play-state:paused}
+.act.frozen{opacity:.4}
+.mini.stop{border-color:#9fd3e6;color:#4f8fa8}
+.mini.stop.on{background:#e2f3e6;border-color:#7cc68d;color:#4f9a5a;border-style:solid}

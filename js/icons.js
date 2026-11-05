@@ -91,6 +91,8 @@ const P = {
   sponge: `<rect x="4" y="12" width="24" height="15" rx="4" fill="#ffd54a" ${s}/><circle cx="10" cy="18" r="1.8" fill="#e6b52e"/><circle cx="17" cy="22" r="2" fill="#e6b52e"/><circle cx="22" cy="17" r="1.5" fill="#e6b52e"/><circle cx="9" cy="7" r="3" fill="#d9f3fb" ${s}/><circle cx="17" cy="5" r="2" fill="#d9f3fb" ${s}/>`,
   zzz: `<g fill="#6f8de0" font-family="'M PLUS Rounded 1c',sans-serif" font-weight="800"><text x="3" y="27" font-size="17">Z</text><text x="15" y="18" font-size="12">z</text><text x="23" y="11" font-size="9">z</text></g>`,
   card: `<rect x="3" y="7" width="26" height="18" rx="3" fill="#fff" ${s}/><circle cx="10" cy="14" r="3" fill="#ff9fb3"/><path d="M6.5 21a3.5 3.5 0 0 1 7 0M17 12h8M17 17h6" ${s} fill="none"/>`,
+  pause: `<rect x="7" y="5" width="6.5" height="22" rx="2.5" fill="#6cc3e0" ${s}/><rect x="18.5" y="5" width="6.5" height="22" rx="2.5" fill="#6cc3e0" ${s}/>`,
+  play: `<path d="M9 5l18 11-18 11z" fill="#7cc68d" ${s}/>`,
   // ---- きせかえ ----
   hachimaki: `<path d="M3 13c8-4 18-4 26 0v6c-8-4-18-4-26 0z" fill="#fff" ${s}/><circle cx="16" cy="13.5" r="3" fill="#f0506a"/><path d="M27 16l3 7M27 16l-1 8" ${s}/>`,
   ribbon: `<path d="M16 16 4 8v16zM16 16l12-8v16z" fill="#ff6f9a" ${s}/><circle cx="16" cy="16" r="4" fill="#ff8fb0" ${s}/>`,

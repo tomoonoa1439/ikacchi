@@ -73,6 +73,7 @@ export function newState() {
     log: [], lastSaved: Date.now(), lastDay: dayKey(), rainbowDay: '',
     // ---- ともだち ----
     friends: [], friendPlay: {}, redeemed: [], rel: {},
+    paused: false, pausedAt: 0,
   };
 }
 

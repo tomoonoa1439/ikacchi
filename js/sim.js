@@ -190,7 +190,8 @@ function grow(st, live) {
 // るすの間の時間を すすめる。日がかわったら ボーナス
 export function catchUp() {
   const S = G.state;
-  const mins = Math.min((Date.now() - S.lastSaved) / 60000, CONFIG.maxOfflineMinutes);
+  // ストップちゅうは るすの間も じかんが すすまない
+  const mins = S.paused ? 0 : Math.min((Date.now() - S.lastSaved) / 60000, CONFIG.maxOfflineMinutes);
   const before = S.messes.length, mBefore = S.mistakes;
   for (let t = 0; t < mins; t += 1) step(Math.min(1, mins - t), false);
   let daily = false;

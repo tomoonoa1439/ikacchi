@@ -16,6 +16,7 @@ const asleepBlock = () => { if (G.state.sleeping) { say('Zzz…（ねてるよ�
 export function dispatch(type, p = {}) {
   const fn = A[type];
   if (!fn) { console.warn('unknown action', type); return; }
+  if (G.state.paused && !['resume', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave'].includes(type)) { say('ストップちゅうだよ。さいかいしてね'); return; }
   if (G.busy && !['cleanOne', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave', 'travel'].includes(type)) return;
   const r = fn(p);
   bus.emit('changed', type);
@@ -23,6 +24,22 @@ export function dispatch(type, p = {}) {
 }
 
 const A = {
+  // ---------- ストップ（いちじていし）----------
+  pause() {
+    const S = G.state;
+    S.paused = true; S.pausedAt = Date.now();
+    if (G.visitor) G.visitor = null;
+    log('ストップした（じかんが とまった）');
+  },
+  resume() {
+    const S = G.state;
+    if (!S.paused) return;
+    const h = (Date.now() - S.pausedAt) / 3600000;
+    S.paused = false; S.lastSaved = Date.now();   // とまっていた あいだの じかんは すすめない
+    log(`さいかいした（${h < 1 ? Math.max(1, Math.round(h * 60)) + 'ふん' : h.toFixed(1) + 'じかん'} とまっていた）`);
+    say('おかえり！ まってたよ'); fx('sparkle');
+  },
+
   // ---------- たまご ----------
   warm() {
     const e = G.state.egg;
