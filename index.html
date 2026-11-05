@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>イカッチ</title>
+<meta name="description" content="イカの たまごを ふかして そだてる ゲーム">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">🦑 イカッチ <small>ver 0.2</small></div>
+    <div class="pills">
+      <div class="pill" id="weather">☀️</div>
+      <div class="pill" id="clock">--:--</div>
+      <div class="pill">🐚 <span id="shells">0</span></div>
+    </div>
+  </header>
+
+  <div class="scene t-day" id="scene">
+    <div class="sky"></div>
+    <div class="stars" id="stars"></div>
+    <div class="rainbow"></div>
+    <div class="orb"></div>
+    <div class="cloud c1"></div><div class="cloud c2"></div>
+    <div class="waterline"></div>
+    <div class="water"></div>
+    <div class="rain" id="rain"></div>
+    <div class="weed" style="left:44%;height:46px;animation-delay:-1s"></div>
+    <div class="weed" style="left:47%;height:30px;background:#93d39f"></div>
+    <div class="weed" style="left:92%;height:56px;animation-delay:-2s"></div>
+    <div class="sand"></div>
+    <div id="bubbles"></div>
+    <div id="decor"></div>
+    <div class="futon"></div>
+    <div class="toilet"><div class="tank"></div><div class="seat"></div><div class="bowl"></div><div class="lbl">トイレ</div></div>
+    <div id="messes"></div>
+    <div id="visitor"></div>
+    <div id="pet"></div>
+    <div class="need" id="need"></div>
+    <div class="dark" id="dark"></div>
+    <div class="zzz" style="left:26%;bottom:40%">Z z</div>
+    <div class="say" id="say"></div>
+  </div>
+
+  <div class="card">
+    <div class="who"><b id="petName">イカのたまご</b><span id="bond"></span></div>
+    <div class="info" id="petInfo"></div>
+    <div class="meters" id="meters"></div>
+  </div>
+
+  <div class="actions" id="actions"></div>
+  <div class="menu" id="menu"></div>
+
+  <div class="foot">
+    <button class="mini" id="speedBtn">⏩ はやさ ×1</button>
+    <button class="mini" id="soundBtn">🔊 おと ON</button>
+    <button class="mini" id="resetBtn">🥚 さいしょから</button>
+  </div>
+</div>
+
+<div class="modal-back" id="modalBack"><div class="modal" id="modal"></div></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
