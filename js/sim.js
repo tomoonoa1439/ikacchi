@@ -2,17 +2,21 @@
 //  時間経過のシミュレーション（成長・進化・おせわミス・寿命 など）
 //  live=false のときは るすの間の計算（ふきだし等は出さない）
 // =========================================================
-import { CONFIG, FORMS, WEATHER } from './config.js';
+import { CONFIG, FORMS, WEATHER, SPECIES } from './config.js';
 import { G, bus, clamp, dayKey, isNight, hour, hashStr } from './state.js';
 
 export const stageInfo = id => CONFIG.stages.find(s => s.id === id);
 const stageByAge = age => CONFIG.stages.find(s => age < s.until);
 export const baseWeight = stage => CONFIG.weightBase[stage] || 5;
 
+export const speciesOf = sp => SPECIES[sp] || SPECIES.momo;
 export function stageName(S = G.state) {
+  const sp = speciesOf(S.sp).name;
   if (S.stage === 'egg') return 'たまご';
-  if (S.stage === 'adult') return (FORMS[S.form] || FORMS.surume).name;
-  return stageInfo(S.stage).name;
+  if (S.stage === 'baby') return 'あかちゃん' + sp;
+  if (S.stage === 'child') return 'こども' + sp;
+  const f = FORMS[S.form] || FORMS.surume;
+  return (f.prefix ? f.prefix + ' ' : '') + sp;
 }
 export function log(text) {
   const S = G.state;
@@ -140,8 +144,14 @@ export function hatch(live) {
     fake: false, fakeT: 0, needT: { hunger: 0, mess: 0, light: 0, sick: 0 }, bornAt: Date.now(),
   });
   S.shells += 5;
-  log(S.gen > 1 ? `${S.gen}だいめの イカが うまれた！` : 'たまごから うまれた！');
-  if (live) { say(live, 'ぱかっ！ うまれたよ！'); bus.emit('fx', 'chick'); bus.emit('fx', 'sparkle', 30); bus.emit('beep', 990, .15); }
+  if (!S.seenSp.includes(S.sp)) S.seenSp = [...S.seenSp, S.sp];
+  const sp = speciesOf(S.sp);
+  log(`${S.gen > 1 ? S.gen + 'だいめの ' : ''}${sp.name}が うまれた！${sp.rare ? '（レア！）' : ''}`);
+  if (live) {
+    say(live, sp.rare ? `ぱかっ！ まぼろしの ${sp.name}だ！` : `ぱかっ！ ${sp.name}が うまれたよ！`);
+    bus.emit('fx', 'chick'); bus.emit('fx', 'sparkle', 30); bus.emit('beep', 990, .15);
+    if (sp.rare) { bus.emit('fx', 'rainbow', -30); bus.emit('fx', 'party', 50); }
+  }
   bus.emit('hatched', live);
 }
 

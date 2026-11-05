@@ -68,12 +68,29 @@ export const FINDS = [
   { id: 'rainbow', ic: 'scale', name: 'にじいろのうろこ', rare: 3, value: 30, text: 'あめや にじの ひにだけ みつかる。', weather: ['rain', 'rainbow'] },
 ];
 
-// ---- おとなの すがた（こどもの ころの おせわで きまる）----
+// ---- イカの しゅるい（たまごの ときに ランダムで きまる。w は でやすさ）----
+//   body: からだ  edge: ふちどり  line: もようの いろ  ink: かおの せんの いろ  fin: ひれの かたち
+export const SPECIES = {
+  momo:   { name: 'ももイカ',     w: 25, body: '#ffc6d2', edge: '#e98aa0', line: '#f3a3b6', cheek: '#ff7f9a', ink: '#4a3a3a', fin: 'round',
+            desc: 'ピンクで あまえんぼう。いちばん よく みかける イカ。' },
+  neon:   { name: 'ネオンイカ',   w: 20, body: '#2e3270', edge: '#5ff3ff', line: '#ff6ff0', line2: '#5ff3ff', cheek: '#ff6ff0', ink: '#e8f7ff', fin: 'sharp', glow: '#5ff3ff',
+            desc: 'よるの うみで ピカピカ ひかる。おしゃれが だいすき。' },
+  sabaku: { name: 'さばくイカ',   w: 20, body: '#f5d59e', edge: '#c99a5c', line: '#e0ad66', cheek: '#ff9a6a', ink: '#5b3e24', fin: 'wide',
+            desc: 'すなの うみ うまれ。あたまに サボテンが はえている。' },
+  yuki:   { name: 'ゆきイカ',     w: 20, body: '#f6fbff', edge: '#9cc9e6', line: '#cfe8f7', cheek: '#9fd0ff', ink: '#3d4f66', fin: 'fluffy',
+            desc: 'つめたい うみの イカ。ふわふわの ゆきぼうしが じまん。' },
+  hoshi:  { name: 'ほしぞらイカ', w: 12, body: '#7d70d8', edge: '#4e46a3', line: '#ffe38a', cheek: '#ff9fd0', ink: '#2a2350', fin: 'pointy',
+            desc: 'からだに ほしが ひかる。ゆめを みるのが とくい。' },
+  niji:   { name: 'にじイカ',     w: 3, rare: true, body: '#fff3f8', edge: '#c79ad9', line: '#ff9a9a', cheek: '#ff9fb3', ink: '#4a3a3a', fin: 'round',
+            desc: 'めったに うまれない まぼろしの イカ。' },
+};
+
+// ---- おとなの タイプ（こどもの ころの おせわで きまる。しゅるいの まえに つく）----
 export const FORMS = {
-  surume: { name: 'スルメイカ',   body: '#ffb48a', edge: '#d77a4c', hint: 'ふつうに そだつと' },
-  hotaru: { name: 'ホタルイカ',   body: '#cfdcff', edge: '#6f8de0', glow: true, hint: 'ミスなく ていねいに おせわして、しつけも できると' },
-  aori:   { name: 'アオリイカ',   body: '#cdeee6', edge: '#5fb8a2', hint: 'たくさん あそぶと' },
-  daiou:  { name: 'ダイオウイカ', body: '#ff9a8f', edge: '#c95555', big: true, hint: 'たくさん たべると' },
+  surume: { name: 'のびのびタイプ', prefix: '',         hint: 'ふつうに そだつと' },
+  hotaru: { name: 'ピカピカタイプ', prefix: 'ひかる',   glow: true, hint: 'ミスなく ていねいに おせわして、しつけも できると' },
+  aori:   { name: 'ヒラヒラタイプ', prefix: 'ひらひら', bigFin: true, hint: 'たくさん あそぶと' },
+  daiou:  { name: 'ビッグタイプ',   prefix: 'ビッグ',   big: true, hint: 'たくさん たべると' },
 };
 
 // ---- てんき（ひづけで きまる。みんな おなじ ひは おなじ てんき）----

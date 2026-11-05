@@ -85,8 +85,8 @@ const A = {
   },
   travel() {
     const S = G.state;
-    S.album.unshift({ gen: S.gen, name: S.name || 'イカッチ', form: S.form, hat: S.inv.hat, days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now() });
-    const keep = { player: S.player, shells: S.shells + 20, inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
+    S.album.unshift({ gen: S.gen, name: S.name || 'イカッチ', sp: S.sp, form: S.form, hat: S.inv.hat, days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now() });
+    const keep = { seenSp: S.seenSp, player: S.player, shells: S.shells + 20, inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
                    album: S.album.slice(0, 30), log: S.log, gen: S.gen + 1, rainbowDay: S.rainbowDay, lastDay: S.lastDay };
     G.state = Object.assign(newState(), keep);
     G.visitor = null;
@@ -263,5 +263,5 @@ function rollFind() {
 // ともだちに わたす「カード」= じぶんのイカの みため
 export function makeCard() {
   const S = G.state;
-  return { pid: S.player.id, owner: S.player.name, name: S.name || 'イカッチ', stage: S.stage, form: S.form, hat: S.inv.hat, title: stageName(S), t: Date.now() };
+  return { pid: S.player.id, owner: S.player.name, name: S.name || 'イカッチ', sp: S.sp, stage: S.stage, form: S.form, hat: S.inv.hat, title: stageName(S), t: Date.now() };
 }

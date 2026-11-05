@@ -1,7 +1,7 @@
 // =========================================================
 //  ゲームの状態（セーブデータ）と 共通ユーティリティ
 // =========================================================
-import { CONFIG } from './config.js';
+import { CONFIG, SPECIES } from './config.js';
 
 // 実行中の共有オブジェクト（state 以外は セーブしない）
 export const G = { state: null, busy: false, speed: 1, sound: true, visitor: null, lastPet: 0, lastTalk: 0 };
@@ -40,13 +40,20 @@ export function genId() {
   return Array.from(r, b => abc[b % abc.length]).join('');
 }
 
+export function rollSpecies() {
+  const list = Object.entries(SPECIES), total = list.reduce((a, [, v]) => a + v.w, 0);
+  let r = Math.random() * total;
+  for (const [id, v] of list) { r -= v.w; if (r <= 0) return id; }
+  return 'momo';
+}
+
 export function newState() {
   return {
     v: CONFIG.version,
     // ---- プレイヤー（マルチで使う。アカウント不要のランダムID）----
     player: { id: genId(), name: '' },
     // ---- イカ ----
-    stage: 'egg', form: null, name: '', ageMin: 0,
+    stage: 'egg', form: null, name: '', ageMin: 0, sp: rollSpecies(), seenSp: [],
     egg: { warmth: 55, water: 100, hatch: 0 },
     hunger: 70, energy: 80, bladder: 10, happy: 70, clean: 100,
     messes: [], sleeping: false, sick: false, sickTimer: 0, pos: 50,
@@ -79,6 +86,8 @@ export function migrate(s) {
   out.inv = { ...base.inv, ...(s.inv || {}) };
   out.inv.food = { ...base.inv.food, ...((s.inv || {}).food || {}) };
   if (out.stage === 'adult' && !out.form) out.form = 'surume';
+  if (!s.sp) { out.sp = out.stage === 'egg' ? rollSpecies() : 'momo'; }
+  if (out.stage !== 'egg' && !out.seenSp.includes(out.sp)) out.seenSp = [...out.seenSp, out.sp];
   return out;
 }
 
