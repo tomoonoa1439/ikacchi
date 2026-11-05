@@ -8,6 +8,8 @@ import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
 import { net, makeLink } from './net.js';
 import { REL, REL_RULE, relOf, relStage, perOf, friendPer } from './social.js';
+import { TRAITS } from './traits.js';
+import { PERSONALITY } from './config.js';
 import { ic, fillIcons } from './icons.js';
 
 const $ = id => document.getElementById(id);
@@ -392,10 +394,12 @@ function openCheck() {
   const hearts = v => ic('heart', 16).repeat(Math.round(v / 25)) + ic('heartEmpty', 16).repeat(4 - Math.round(v / 25));
   const left = Math.max(0, lifespan() - S.ageMin);
   showModal(`<h3>${ic('search', 20)} しらべる</h3>
-    <div class="check">
+    <div class="scroll"><div class="check">
       <div><span>なまえ</span><b>${esc(S.name || 'イカッチ')}（${S.gen}だいめ）</b></div>
       <div><span>しゅるい</span><b>${speciesOf(S.sp).name}</b></div>
-      <div><span>せいかく</span><b>${perOf(S.per).name} <small>${perOf(S.per).desc}</small></b></div>
+      <div class="perbox"><span>せいかく</span><b>${perOf(S.per).name}</b><small>${perOf(S.per).desc}</small>
+        ${Object.entries(TRAITS).map(([k, t]) => `<div class="trow"><i>${t.name}</i><span class="bar sm"><i style="width:${S.tr[k]}%;background:${t.color}"></i></span><em>${Math.round(S.tr[k])}</em></div>`).join('')}
+        <button class="btn xs" data-a="perHelp">せいかくの かわりかた</button></div>
       <div><span>すがた</span><b>${stageName(S)}</b></div>
       <div><span>ねんれい</span><b>${ageYears(S)}さい <small>（うまれて ${S.ageMin < 60 ? Math.floor(S.ageMin) + 'ふん' : (S.ageMin / 60).toFixed(1) + 'じかん'}）</small></b></div>
       <div><span>たいじゅう</span><b>${S.weight}g ${over > 10 ? '<em>ふとりぎみ</em>' : ''}</b></div>
@@ -407,8 +411,33 @@ function openCheck() {
       ${S.stage === 'child' ? `<div><span>こども期の きろく</span><b><small>おせわ${S.care.good}・ミス${S.care.bad}・ごはん${S.care.feed}・あそび${S.care.play}</small></b></div>` : ''}
       ${S.stage === 'adult' ? `<div><span>たびだちまで</span><b>あと ${(left / 60).toFixed(1)}じかん</b></div>` : ''}
     </div>
-    <p class="note">${ic('angry', 20)}が でたら わがまま。しかって しつけよう<br>${ic('bulb', 20)}が でたら でんきを けしてあげよう</p>${closeBtn()}`);
+    <p class="note">${ic('angry', 20)}が でたら わがまま。しかって しつけよう<br>${ic('bulb', 20)}が でたら でんきを けしてあげよう</p></div>${closeBtn()}`, { perHelp: openPerHelp });
 }
+
+function openPerHelp() {
+  showModal(`<h3>${ic('heart', 22)} せいかくの かわりかた</h3>
+    <p>せいかくは あなたの かかわりかたで どんどん かわるよ</p>
+    <div class="scroll"><div class="check helpgrid">
+      <div><span>なでる</span><b>やさしさ・ゆうき アップ</b></div>
+      <div><span>あそぶ・すなほり</span><b>げんき アップ（かつと ゆうきも）</b></div>
+      <div><span>わがままを しかる</span><b>すなおさ アップ</b></div>
+      <div><span>トイレ・はやね</span><b>すなおさ アップ</b></div>
+      <div><span>わがまま中に おやつ・なでる</span><b>すなおさ ダウン（あまえんぼうに）</b></div>
+      <div><span>りふじんに しかる</span><b>すなおさ・ゆうき・やさしさ ダウン</b></div>
+      <div><span>ほうっておく（おせわミス）</span><b>ゆうき・やさしさ ダウン</b></div>
+      <div><span>ともだちと なかなおり・おすそわけ</span><b>やさしさ アップ</b></div>
+    </div>
+    <div class="choices">${Object.values(PERSONALITY).map(p => `<div class="choice"><span class="grow">${p.name}<small>${p.desc} ／ ${p.hint}</small></span></div>`).join('')}</div></div>
+    <div class="row"><button class="btn gray" data-a="back">もどる</button></div>`, { back: openCheck });
+}
+bus.on('perchange', d => setTimeout(() => eventModal(() => {
+  const S = G.state;
+  showModal(`<h3>${ic('sparkle', 22)} せいかくが かわった！</h3>
+    <div class="zsq hero">${squidSVG(S.stage === 'egg' ? 'baby' : S.stage, 'happy', S.form, S.inv.hat, S.sp)}</div>
+    <p>さいきんの ${esc(S.name || 'イカッチ')}は…<br><b>${PERSONALITY[d.from]?.name || ''}</b> → <b class="big">${PERSONALITY[d.to].name}</b></p>
+    <p class="note">${PERSONALITY[d.to].desc}</p>${closeBtn()}`);
+  fx('sparkle'); beep(990, .1);
+}), 400));
 
 /* ---------------- たびだち（せだいこうたい） ---------------- */
 function openTravel() {

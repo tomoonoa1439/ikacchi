@@ -85,15 +85,17 @@ export const SPECIES = {
             desc: 'めったに うまれない まぼろしの イカ。' },
 };
 
-// ---- せいかく（うまれたときに ランダム。ともだちとの ふるまいが かわる）----
-//   kenka: けんかの しやすさ  sorry: じぶんから あやまる  forgive: ゆるす  share: おすそわけ
-//   confess: こくはくする ゆうき  accept: こくはくを うけいれる  talk: おしゃべり  play: あそびに さそう
+// ---- せいかくの なまえ（traits.js の 4つの パラメータの くみあわせで きまる）----
 export const PERSONALITY = {
-  yasashii:  { name: 'やさしい',     kenka: .6,  sorry: 1.5, forgive: 1.2, share: 2,  confess: 1,   accept: 1.2, talk: 1,   play: 1,   desc: 'おこりにくくて、すぐ あやまれる' },
-  genki:     { name: 'げんき',       kenka: 1.1, sorry: 1,   forgive: 1,   share: 1,  confess: 1.4, accept: 1,   talk: 1.4, play: 1.6, desc: 'いつも あそびたくて うずうず' },
-  hazukashi: { name: 'はずかしがり', kenka: .8,  sorry: .9,  forgive: 1,   share: 1,  confess: .4,  accept: .8,  talk: .6,  play: .8,  desc: 'なかなか じぶんの きもちを いえない' },
-  ijippari:  { name: 'いじっぱり',   kenka: 1.5, sorry: .5,  forgive: .6,  share: .7, confess: .8,  accept: 1,   talk: 1,   play: 1,   desc: 'すぐ ムキに なって、ごめんねが にがて' },
-  mypace:    { name: 'マイペース',   kenka: .9,  sorry: 1,   forgive: 1,   share: 1,  confess: 1,   accept: 1,   talk: .8,  play: .9,  desc: 'のんびりやで ゆうゆう じてき' },
+  yasashii:  { name: 'やさしい',     desc: 'おこりにくくて、すぐ あやまれる',       hint: 'たくさん なでると' },
+  genki:     { name: 'げんき',       desc: 'いつも あそびたくて うずうず',          hint: 'たくさん あそぶと' },
+  shikkari:  { name: 'しっかりもの', desc: 'すなおで ゆうきも ある おにいさん・おねえさん', hint: 'ただしく しつけて、ゲームにも かたせると' },
+  ottori:    { name: 'おっとり',     desc: 'やさしくて のんびり。けんかは にがて',  hint: 'なでるけど あまり あそばないと' },
+  mypace:    { name: 'マイペース',   desc: 'のんびりやで ゆうゆう じてき',          hint: 'バランスよく そだつと' },
+  hazukashi: { name: 'はずかしがり', desc: 'なかなか じぶんの きもちを いえない',    hint: 'ほうっておいたり、しかりすぎると' },
+  ijippari:  { name: 'いじっぱり',   desc: 'すぐ ムキに なって、ごめんねが にがて',  hint: 'りふじんに しかったり、あまやかすと' },
+  amaenbo:   { name: 'あまえんぼう', desc: 'やさしいけど わがままが おおい',        hint: 'なでて おやつで あまやかすと' },
+  wanpaku:   { name: 'わんぱく',     desc: 'げんきすぎて いうことを きかない',      hint: 'あそんでばかりで しつけないと' },
 };
 
 // ---- おとなの タイプ（こどもの ころの おせわで きまる。しゅるいの まえに つく）----

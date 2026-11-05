@@ -6,6 +6,7 @@ import { CONFIG, FOODS, HATS, DECOR, FINDS } from './config.js';
 import { G, bus, clamp, rand, pick, dayKey, isNight, newState, migrate } from './state.js';
 import { care, addBond, log, weatherToday, stageName, baseWeight, bondLevel, wake } from './sim.js';
 import { relOf, relStage, addRelPt } from './social.js';
+import { nudge, traitMul } from './traits.js';
 
 const say = t => bus.emit('say', t);
 const fx = (c, d) => bus.emit('fx', c, d);
@@ -43,9 +44,13 @@ const A = {
     if (f.price > 0 && !(S.inv.food[id] > 0)) { say('もってないよ… ショップで かえるよ'); return false; }
     if (S.hunger >= 95 && f.hunger > 10 && id !== 'cake') { say('おなか いっぱい…'); return false; }
     if (id === 'snack' && S.hunger < 25) { say('おやつより ごはんが いい…'); return false; }
-    if (f.hunger > 10 && S.discipline < 50 && S.hunger > 30 && Math.random() < .15) { say('いやいや！ たべたくない〜（しつけが たりない？）'); return false; }
+    if (f.hunger > 10 && S.hunger > 30 && Math.random() < .1 * traitMul(S.tr).refuse) { say('いやいや！ たべたくない〜'); nudge({ sunao: -.5 }); return false; }
     if (f.price > 0) S.inv.food[id]--;
     S.weight += f.weight || 0;
+    // わがまま中に おやつ → あまやかし。おなかが すいてる ときの ごはん → きそく ただしく
+    if (S.fake) nudge({ sunao: -2.5, kind: .5 });
+    else if (f.hunger < 10 && S.hunger > 50) nudge({ sunao: -1, kind: .5 });
+    else if (S.hunger < 50) nudge({ sunao: .3, kind: .2 });
     S.fake = false;
     const wasHungry = S.hunger < 50;
     S.hunger = clamp(S.hunger + f.hunger);
@@ -60,7 +65,7 @@ const A = {
   futon() {
     const S = G.state;
     if (S.sleeping && !S.lightsOff) {           // かってに ねた → でんきを けして おふとんへ
-      S.lightsOff = true; S.pos = 22; S.shells += 1; care('good'); addBond(1);
+      S.lightsOff = true; S.pos = 22; S.shells += 1; care('good'); addBond(1); nudge({ sunao: .5 });
       say('でんきを けしたよ。おやすみ…'); return;
     }
     if (S.sleeping) {
@@ -70,17 +75,19 @@ const A = {
     }
     if (S.energy > 85 && !isNight()) { say('まだ ねむくないよ！'); return; }
     S.sleeping = true; S.lightsOff = true; S.pos = 22; S.fake = false; say('おやすみなさい…');
-    if (S.energy < 40 || isNight()) { S.shells += 1; care('good'); addBond(1); }
+    if (S.energy < 40 || isNight()) { S.shells += 1; care('good'); addBond(1); nudge({ sunao: .8 }); }
   },
   scold() {
     const S = G.state;
     if (asleepBlock()) return;
     if (S.fake) {
       S.fake = false; S.discipline = clamp(S.discipline + 25); S.happy = clamp(S.happy - 3); care('good');
+      nudge({ sunao: 3.5, yuki: -.5 });
       log(`わがままを しかった（しつけ ${S.discipline}）`);
       say(S.discipline >= 100 ? '…もう わがまま いわない！' : '…ごめんなさい'); fx('sweat');
     } else {
       S.happy = clamp(S.happy - 15); addBond(-3); care('bad');
+      nudge({ sunao: -3, yuki: -2.5, kind: -1.5 });   // りふじんに しかると ひねくれる
       say('なんで おこるの…？'); fx('drop'); beep(240, .15);
     }
   },
@@ -103,7 +110,7 @@ const A = {
     if (S.bladder < 30) { say('まだ でないよ〜'); return; }
     G.busy = true; S.pos = 80; say('トイレ いってくる！');
     setTimeout(() => {
-      S.bladder = 0; S.happy = clamp(S.happy + 10); S.shells += 2; care('good'); addBond(2);
+      S.bladder = 0; S.happy = clamp(S.happy + 10); S.shells += 2; care('good'); addBond(2); nudge({ sunao: 1 });
       say('ひとりで できた！ スッキリ〜'); fx('sparkle'); beep(880, .1); bus.emit('changed');
       setTimeout(() => { S.pos = 50; G.busy = false; bus.emit('changed'); }, 1200);
     }, 1600);
@@ -111,7 +118,7 @@ const A = {
   clean() {
     const S = G.state;
     if (!S.messes.length) { say('もう ぴかぴかだよ！'); return; }
-    S.messes = []; S.clean = 100; S.shells += 1; care('good'); addBond(1);
+    S.messes = []; S.clean = 100; S.shells += 1; care('good'); addBond(1); nudge({ kind: .3 });
     say('おそうじ できた！ ありがと'); fx('bubbles');
   },
   cleanOne({ i }) {
@@ -131,13 +138,17 @@ const A = {
     if (S.stage === 'egg') return A.talk();
     if (asleepBlock()) return;
     if (Date.now() - G.lastPet < 2500) { say('くすぐったいよ〜'); return; }
-    G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1); S.fake = false;
+    G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1);
+    nudge(S.fake ? { kind: 1, sunao: -1.5 } : { kind: 1.5, yuki: .6 });   // わがまま中に なでると あまえんぼうに
+    S.fake = false;
     say(pick(['えへへ', 'なでなで うれしい！', 'すき〜！'])); fx('heart'); bus.emit('bounce'); beep(980, .05);
   },
   playResult({ win }) {
     const S = G.state;
     S.energy = clamp(S.energy - 10); S.hunger = clamp(S.hunger - 5); S.happy = clamp(S.happy + (win ? 25 : 10));
-    care('play'); addBond(win ? 3 : 2); S.fake = false;
+    care('play'); addBond(win ? 3 : 2);
+    nudge(S.fake ? { genki: 2, sunao: -1.5 } : { genki: 2.2, yuki: win ? 1.8 : .4 });
+    S.fake = false;
     S.weight = Math.max(baseWeight(S.stage), S.weight - 1);
     if (win) S.shells += 3;
     say(win ? 'たのしかった〜！' : 'くやしい… もういっかい！'); if (win) fx('party');
@@ -150,6 +161,7 @@ const A = {
     if (asleepBlock()) return false;
     if (S.energy < d.energy) { say('つかれてて ほれない…'); return false; }
     S.energy = clamp(S.energy - d.energy); S.hunger = clamp(S.hunger - d.hunger);
+    nudge({ genki: 1.2, yuki: .6 });
     S.weight = Math.max(baseWeight(S.stage), S.weight - 1);
     return true;
   },
@@ -265,5 +277,5 @@ function rollFind() {
 // ともだちに わたす「カード」= じぶんのイカの みため
 export function makeCard() {
   const S = G.state;
-  return { pid: S.player.id, owner: S.player.name, name: S.name || 'イカッチ', sp: S.sp, per: S.per, stage: S.stage, form: S.form, hat: S.inv.hat, title: stageName(S), t: Date.now() };
+  return { pid: S.player.id, owner: S.player.name, name: S.name || 'イカッチ', sp: S.sp, per: S.per, tr: S.tr, stage: S.stage, form: S.form, hat: S.inv.hat, title: stageName(S), t: Date.now() };
 }

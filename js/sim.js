@@ -4,6 +4,7 @@
 // =========================================================
 import { CONFIG, FORMS, WEATHER, SPECIES } from './config.js';
 import { G, bus, clamp, dayKey, isNight, hour, hashStr } from './state.js';
+import { nudge, traitMul } from './traits.js';
 
 export const stageInfo = id => CONFIG.stages.find(s => s.id === id);
 const stageByAge = age => CONFIG.stages.find(s => age < s.until);
@@ -105,7 +106,7 @@ export function step(dt, live) {
 
   // ---- わがまま（しつけ） ----
   if (S.fake) { S.fakeT += dt; if (S.fakeT > 10) S.fake = false; }
-  else if (!S.sleeping && S.stage !== 'baby' && S.discipline < 100 && Math.random() < CONFIG.fakeCallRate * dt) {
+  else if (!S.sleeping && S.stage !== 'baby' && S.discipline < 100 && Math.random() < CONFIG.fakeCallRate * dt * traitMul(S.tr).fake) {
     S.fake = true; S.fakeT = 0; say(live, 'ねぇねぇ！ かまって〜！');
   }
 
@@ -132,6 +133,8 @@ const MISTAKE_TEXT = { hunger: 'おなかが すいたまま ほうっておか�
 function mistake(kind, live) {
   const S = G.state;
   S.mistakes++; care('bad'); S.happy = clamp(S.happy - 5);
+  // ほうっておかれると さびしくて じしんを なくす
+  nudge(kind === 'light' ? { genki: -1.5, sunao: -.3 } : { yuki: -2.2, kind: -.8, sunao: -.3 }, live);
   log(`おせわミス：${MISTAKE_TEXT[kind]}`);
   if (live) bus.emit('beep', 200, .25);
 }
@@ -159,7 +162,7 @@ function accident(live) {
   const S = G.state;
   S.bladder = 0;
   S.happy = clamp(S.happy - 15);
-  care('bad');
+  care('bad'); nudge({ yuki: -.8 }, live);
   if (S.messes.length < 6) S.messes.push({ x: Math.round(14 + Math.random() * 72) });
   log(S.sleeping ? 'おねしょ しちゃった' : 'おもらし しちゃった');
   if (live) { say(live, S.sleeping ? 'あっ… おねしょ しちゃった…' : 'あっ… もらしちゃった…'); bus.emit('beep', 220, .2); }

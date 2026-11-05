@@ -1,7 +1,8 @@
 // =========================================================
 //  ゲームの状態（セーブデータ）と 共通ユーティリティ
 // =========================================================
-import { CONFIG, SPECIES, PERSONALITY } from './config.js';
+import { CONFIG, SPECIES } from './config.js';
+import { randomTraits, presetTraits, perLabel } from './traits.js';
 
 // 実行中の共有オブジェクト（state 以外は セーブしない）
 export const G = { state: null, modalOpen: false, busy: false, speed: 1, sound: true, visitor: null, lastPet: 0, lastTalk: 0 };
@@ -47,15 +48,14 @@ export function rollSpecies() {
   return 'momo';
 }
 
-export const rollPer = () => pick(Object.keys(PERSONALITY));
-
 export function newState() {
+  const tr = randomTraits();
   return {
     v: CONFIG.version,
     // ---- プレイヤー（マルチで使う。アカウント不要のランダムID）----
     player: { id: genId(), name: '' },
     // ---- イカ ----
-    stage: 'egg', form: null, name: '', ageMin: 0, sp: rollSpecies(), seenSp: [], per: rollPer(),
+    stage: 'egg', form: null, name: '', ageMin: 0, sp: rollSpecies(), seenSp: [], tr, per: perLabel(tr),
     egg: { warmth: 55, water: 100, hatch: 0 },
     hunger: 70, energy: 80, bladder: 10, happy: 70, clean: 100,
     messes: [], sleeping: false, sick: false, sickTimer: 0, pos: 50,
@@ -88,7 +88,8 @@ export function migrate(s) {
   out.inv = { ...base.inv, ...(s.inv || {}) };
   out.inv.food = { ...base.inv.food, ...((s.inv || {}).food || {}) };
   if (out.stage === 'adult' && !out.form) out.form = 'surume';
-  if (!s.per) out.per = rollPer();
+  if (!out.tr) out.tr = s.per ? presetTraits(s.per) : randomTraits();
+  out.per = perLabel(out.tr);
   if (!s.sp) { out.sp = out.stage === 'egg' ? rollSpecies() : 'momo'; }
   if (out.stage !== 'egg' && !out.seenSp.includes(out.sp)) out.seenSp = [...out.seenSp, out.sp];
   return out;

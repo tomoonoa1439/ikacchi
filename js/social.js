@@ -8,6 +8,7 @@
 import { G, bus, clamp, dayKey, pick, hashStr } from './state.js';
 import { log, addBond } from './sim.js';
 import { PERSONALITY } from './config.js';
+import { traitMul, cardTraits, nudge, perLabel } from './traits.js';
 
 export const REL = {
   shiriai:   { name: 'しりあい', hearts: 0 },
@@ -18,10 +19,10 @@ export const REL = {
 };
 const ORDER = ['shiriai', 'tomodachi', 'nakayoshi', 'shinyu', 'koibito'];
 export const REL_RULE = { tomodachi: 20, nakayoshi: 50, shinyu: 80, confess: 90, talkPerDay: 5, kenkaMinutes: 30 };
-const PER_IDS = Object.keys(PERSONALITY);
 export const perOf = id => PERSONALITY[id] || PERSONALITY.mypace;
-// むかしの カードには せいかくが ないので IDから きめる
-export const friendPer = card => card.per || PER_IDS[hashStr(card.pid || 'x') % PER_IDS.length];
+export const friendPer = card => perLabel(cardTraits(card));
+const myMul = () => traitMul(G.state.tr);
+const yourMul = card => traitMul(cardTraits(card));
 
 export const LINES = {
   shiriai:   ['はじめまして…', 'どこから きたの？', 'ここ ひろいね', 'なに して あそぶ？', 'ちょっと きんちょう する…'],
@@ -79,7 +80,7 @@ export function startKenka(why = pick(KENKA_REASONS)) {
   const r = relOf(v.card.pid);
   r.kenka = true; r.kenkaUntil = Date.now() + REL_RULE.kenkaMinutes * 60000;
   addRelPt(v.card.pid, -10, v.card.name);
-  G.state.happy = clamp(G.state.happy - 10);
+  G.state.happy = clamp(G.state.happy - 10); nudge({ sunao: -.6 });
   log(`${v.card.name}と けんかした（${why}）`);
   bus.emit('kenka', { pid: v.card.pid, name: v.card.name, why });
 }
@@ -92,11 +93,12 @@ function makeUp(meSays) {
   const v = G.visitor, S = G.state, r = relOf(v.card.pid);
   const me = S.name || 'イカッチ', you = v.card.name;
   const [from, to] = meSays ? [me, you] : [you, me];
-  const listener = meSays ? perOf(friendPer(v.card)) : perOf(S.per);
+  const listener = meSays ? yourMul(v.card) : myMul();
   const ok = Math.random() < .75 * listener.forgive + (relStage(r) === 'shinyu' || r.lover ? .15 : 0);
   if (!ok) { v.sorryCool = 12; say(`${from}「…ごめんね」　${to}「…まだ ゆるさないもん」`); log(`${from}が あやまったけど、${to}は まだ おこってる`); return; }
   r.kenka = false;
   addRelPt(v.card.pid, 15, you); addBond(1);
+  nudge(meSays ? { kind: 1.5, sunao: 1.5 } : { kind: 1 });
   log(`${from}が ごめんねって いえて、${to}と なかなおりした`);
   bus.emit('makeup', { from, to });
 }
@@ -106,11 +108,11 @@ function confession(meFirst) {
   const v = G.visitor, S = G.state, r = relOf(v.card.pid);
   const me = S.name || 'イカッチ', you = v.card.name;
   const [from, to] = meFirst ? [me, you] : [you, me];
-  const listener = meFirst ? perOf(friendPer(v.card)) : perOf(S.per);
+  const listener = meFirst ? yourMul(v.card) : myMul();
   r.askDay = dayKey();
   const ok = Math.random() < clamp((r.pt - 80) / 20, 0, 1) * listener.accept + .1;
-  if (ok) { r.lover = true; log(`${from}が ${to}に こくはくして、こいびとに なった`); }
-  else { addRelPt(v.card.pid, -2, you); log(`${from}が ${to}に こくはくしたけど「しんゆうで いたいな」って いわれた`); }
+  if (ok) { r.lover = true; nudge({ yuki: 3, kind: 1.5 }); log(`${from}が ${to}に こくはくして、こいびとに なった`); }
+  else { addRelPt(v.card.pid, -2, you); if (meFirst) nudge({ yuki: -2 }); log(`${from}が ${to}に こくはくしたけど「しんゆうで いたいな」って いわれた`); }
   bus.emit('confess', { from, to, ok });
 }
 
@@ -119,7 +121,7 @@ function playTogether() {
   const me = S.name || 'イカッチ', you = v.card.name, game = pick(PLAYS);
   S.friendPlay[pid] = dayKey();
   S.happy = clamp(S.happy + 15); S.energy = clamp(S.energy - 8); S.shells += 3; addBond(2);
-  addRelPt(pid, 8, you);
+  addRelPt(pid, 8, you); nudge({ genki: 1.5, kind: .5 });
   log(`${me}と ${you}が ${game}を して あそんだ`);
   say(`${me}と ${you}が ${game}を して あそんでる！`); bus.emit('fx', 'note'); bus.emit('fx', 'heart', 30); bus.emit('beep', 880, .08);
 }
@@ -130,7 +132,7 @@ export function socialTick() {
   if (!v || S.sleeping || S.stage === 'egg' || S.travelReady) return;
   v.t = (v.t || 0) + 1;
   const pid = v.card.pid, r = relOf(pid), me = S.name || 'イカッチ', you = v.card.name;
-  const P1 = perOf(S.per), P2 = perOf(friendPer(v.card));
+  const P1 = myMul(), P2 = yourMul(v.card);
   daily(r);
   if (G.busy || G.modalOpen) return;
 
@@ -149,7 +151,7 @@ export function socialTick() {
 
   // けんか：せいかく × きげん
   // 1かいの あそびで けんかは 1どまで
-  let p = .0025 * P1.kenka * P2.kenka + (S.happy < 40 ? .01 : 0) + (S.fake ? .008 : 0) + (S.hunger < 30 ? .005 : 0);
+  let p = .0016 * Math.pow(P1.kenka, 1.7) * P2.kenka + (S.happy < 40 ? .01 : 0) + (S.fake ? .008 : 0) + (S.hunger < 30 ? .005 : 0);
   if (r.lover) p *= .5;
   if (!v.kenkaDone && Math.random() < p) { v.kenkaDone = true; startKenka(); return; }
 
@@ -163,7 +165,7 @@ export function socialTick() {
   if (S.friendPlay[pid] !== dayKey() && S.happy > 30 && S.energy > 20 && Math.random() < .06 * Math.max(P1.play, P2.play)) { playTogether(); bus.emit('changed'); return; }
   // おすそわけ（おやつを もっていれば じぶんで わける）
   if (r.shareDay !== dayKey() && S.inv.food.snack > 0 && Math.random() < .012 * P1.share) {
-    r.shareDay = dayKey(); S.inv.food.snack--; addRelPt(pid, 10, you);
+    r.shareDay = dayKey(); S.inv.food.snack--; addRelPt(pid, 10, you); nudge({ kind: 1.5 });
     log(`${me}が ${you}に おやつを おすそわけ した`);
     say(`${me}「これ、はんぶんこ しよ！」　${you}「わあ、ありがとう！」`); bus.emit('fx', 'candy'); bus.emit('changed'); return;
   }
