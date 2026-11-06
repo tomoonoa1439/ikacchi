@@ -11,8 +11,10 @@ const stageByAge = age => CONFIG.stages.find(s => age < s.until);
 export const baseWeight = stage => CONFIG.weightBase[stage] || 5;
 
 export const speciesOf = sp => SPECIES[sp] || SPECIES.momo;
+// まざった イカの なまえ（例：ネオン＋ももイカ → ネオンももイカ）
+export const spName = (sp, sp2) => sp2 && sp2 !== sp && SPECIES[sp2] ? SPECIES[sp2].mix + speciesOf(sp).name : speciesOf(sp).name;
 export function stageName(S = G.state) {
-  const sp = speciesOf(S.sp).name;
+  const sp = spName(S.sp, S.sp2);
   if (S.stage === 'egg') return 'たまご';
   if (S.stage === 'baby') return 'あかちゃん' + sp;
   if (S.stage === 'child') return 'こども' + sp;
@@ -153,9 +155,9 @@ export function hatch(live) {
   if (!S.seenSp.includes(S.sp)) S.seenSp = [...S.seenSp, S.sp];
   const sp = speciesOf(S.sp);
   S.lastTouch = 0; remember('たまごから うまれた', 3);
-  log(`${S.gen > 1 ? S.gen + 'だいめの ' : ''}${sp.name}が うまれた！${sp.rare ? '（レア！）' : ''}`);
+  log(`${S.gen > 1 ? S.gen + 'だいめの ' : ''}${spName(S.sp, S.sp2)}が うまれた！${sp.rare ? '（レア！）' : ''}`);
   if (live) {
-    say(live, sp.rare ? `ぱかっ！ まぼろしの ${sp.name}だ！` : `ぱかっ！ ${sp.name}が うまれたよ！`);
+    say(live, sp.rare ? `ぱかっ！ まぼろしの ${sp.name}だ！` : `ぱかっ！ ${spName(S.sp, S.sp2)}が うまれたよ！`);
     bus.emit('fx', 'chick'); bus.emit('fx', 'sparkle', 30); bus.emit('beep', 990, .15);
     if (sp.rare) { bus.emit('fx', 'rainbow', -30); bus.emit('fx', 'party', 50); }
   }

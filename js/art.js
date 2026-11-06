@@ -9,6 +9,11 @@ function tint(hex, k) {
   const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(v + (255 - v) * k));
   return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
 }
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(v * (1 - k)));
+  return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+}
 function starPath(cx, cy, R, r) {
   let d = '';
   for (let i = 0; i < 10; i++) {
@@ -86,9 +91,22 @@ function pattern(spId, P, stage, hat) {
   }
 }
 
-export function squidSVG(stage, mood, form, hat, spId = 'momo') {
+// ---- いろの へんか（しきそほう）：CSS の skin-○○ で みえかたが かわる ----
+function chroma(P, dark) {
+  const dots = [[80, 40, 4], [104, 30, 3], [118, 46, 4.5], [90, 58, 3.5], [126, 70, 3], [72, 74, 4], [108, 80, 3.5], [86, 92, 3], [124, 94, 4], [66, 96, 3]]
+    .map(([x, y, r], i) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${dark}" style="animation-delay:${-i * .37}s"/>`).join('');
+  const stripes = [36, 50, 64, 78, 92].map(y => `<path d="M${64 + (y > 60 ? -2 : 6)} ${y + 6} Q100 ${y - 6} ${136 - (y > 60 ? -2 : 6)} ${y + 6}" stroke="${dark}" stroke-width="5" fill="none" stroke-linecap="round"/>`).join('');
+  const waves = [40, 62, 84].map((y, i) => `<path d="M62 ${y + 8} Q100 ${y - 8} 138 ${y + 8}" stroke="#ff8fb8" stroke-width="9" fill="none" stroke-linecap="round" style="animation-delay:${-i * .5}s"/>`).join('');
+  const glow = `<path d="${MANTLE}" fill="none" stroke="#fff6b0" stroke-width="7" opacity=".9"/>`;
+  return `<g class="chroma"><g class="c-dots">${dots}</g><g class="c-stripes">${stripes}</g><g class="c-wave">${waves}</g><g class="c-glow">${glow}</g></g>`;
+}
+
+export function squidSVG(stage, mood, form, hat, spId = 'momo', sp2 = null) {
   const base = SPECIES[spId] || SPECIES.momo;
   const P = { ...base };
+  // まざった イカ：からだは spId、ひれ・あし・もようは sp2
+  const mix = sp2 && sp2 !== spId && SPECIES[sp2] ? SPECIES[sp2] : null;
+  if (mix) { P.fin = mix.fin; P.line = mix.line; P.line2 = mix.line2 || mix.line; P.edge2 = mix.edge; }
   if (stage === 'baby') { P.body = tint(base.body, spId === 'neon' ? .15 : .35); P.edge = tint(base.edge, .25); }
   if (mood === 'sick') { P.body = '#dfe9c8'; P.edge = '#a9bf86'; P.ink = '#4a3a3a'; }
   const f = stage === 'adult' ? (FORMS[form] || FORMS.surume) : null;
@@ -97,7 +115,8 @@ export function squidSVG(stage, mood, form, hat, spId = 'momo') {
   // あし
   const tents = [62, 74, 86, 98, 110, 122, 134].map((x, i) => {
     const len = (i === 1 || i === 5) ? 82 : 58, sway = (i - 3) * 5;
-    const col = spId === 'niji' ? RAINBOW[i] : spId === 'neon' && mood !== 'sick' ? (i % 2 ? P.line : P.line2) : P.edge;
+    const tsp = mix ? sp2 : spId;
+    const col = tsp === 'niji' ? RAINBOW[i] : tsp === 'neon' && mood !== 'sick' ? (i % 2 ? P.line : P.line2) : (mix ? P.edge2 : P.edge);
     return `<path class="tent" style="animation-delay:${-i * .23}s" d="M${x} 140 Q${x + sway - 6} ${140 + len * .55} ${x + sway} ${140 + len}" stroke="${col}" stroke-width="10" fill="none" stroke-linecap="round"/>`;
   }).join('');
 
@@ -141,7 +160,8 @@ export function squidSVG(stage, mood, form, hat, spId = 'momo') {
     ${fins}
     <path d="${MANTLE}" fill="${P.body}" stroke="${P.edge}" stroke-width="4"/>
     <path d="M84 30 Q92 20 100 16" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity="${spId === 'neon' ? .35 : .8}"/>
-    ${mood === 'sick' ? '' : pattern(spId, P, stage, hat)}
+    ${mood === 'sick' ? '' : pattern(mix ? sp2 : spId, mix ? { ...P, edge: P.edge2 } : P, stage, hat)}
+    ${chroma(P, shade(P.edge, .3))}
     ${glowDots}
     <ellipse cx="68" cy="124" rx="9" ry="5" fill="${P.cheek}" opacity=".5"/>
     <ellipse cx="132" cy="124" rx="9" ry="5" fill="${P.cheek}" opacity=".5"/>

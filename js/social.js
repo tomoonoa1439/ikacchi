@@ -9,6 +9,7 @@ import { G, bus, clamp, dayKey, pick, hashStr } from './state.js';
 import { log, addBond } from './sim.js';
 import { PERSONALITY } from './config.js';
 import { traitMul, cardTraits, nudge, perLabel, fillTraits, remember } from './traits.js';
+import { maybeCoupleEgg } from './family.js';
 
 export const REL = {
   shiriai:   { name: 'しりあい', hearts: 0 },
@@ -122,6 +123,7 @@ export function startKenka(why) {
   if (!r.kenkaN) remember(`${v.card.name}と はじめて けんかした`, 1);
   r.kenkaN = (r.kenkaN || 0) + 1;
   log(`${v.card.name}と けんかした（${why}）`);
+  bus.emit('ink');
   bus.emit('kenka', { pid: v.card.pid, name: v.card.name, why });
 }
 
@@ -228,6 +230,8 @@ export function socialTick() {
     log(`${me}と ${you}は ${t}`); say(`${me}と ${you}は ${t}`); bus.emit('fx', 'sparkle'); bus.emit('changed');
     return;
   }
+  // こいびとどうしなら まれに ふたりの たまご
+  if (maybeCoupleEgg(v, r)) { remember(`${you}との あいだに たまごが うまれた`, 3); bus.emit('changed'); return; }
   if (Math.random() < .03) say(`${you}「${pick(LINES[relStage(r)])}」`);
   if (r.lover && Math.random() < .08) bus.emit('fx', 'heart', 40);
 }

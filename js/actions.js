@@ -7,6 +7,8 @@ import { G, bus, clamp, rand, pick, dayKey, isNight, newState, migrate } from '.
 import { care, addBond, log, weatherToday, stageName, baseWeight, bondLevel, wake } from './sim.js';
 import { relOf, relStage, addRelPt } from './social.js';
 import { nudge, traitMul, like, favorite, disliked, inheritTraits, perLabel, remember } from './traits.js';
+import { lineageFor, meAsParent, lineageForCard, MAX_EGGS } from './family.js';
+import { stat } from './story.js';
 
 const say = t => bus.emit('say', t);
 const fx = (c, d) => bus.emit('fx', c, d);
@@ -17,8 +19,8 @@ const TOUCH = ['feed', 'futon', 'toilet', 'clean', 'cleanOne', 'medicine', 'pet'
 export function dispatch(type, p = {}) {
   const fn = A[type];
   if (!fn) { console.warn('unknown action', type); return; }
-  if (G.state.paused && !['resume', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave'].includes(type)) { say('ストップちゅうだよ。さいかいしてね'); return; }
-  if (G.busy && !['cleanOne', 'buy', 'useTool', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave', 'travel'].includes(type)) return;
+  if (G.state.paused && !['resume', 'receiveEgg', 'giveEgg', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave'].includes(type)) { say('ストップちゅうだよ。さいかいしてね'); return; }
+  if (G.busy && !['cleanOne', 'buy', 'useTool', 'travel', 'receiveEgg', 'giveEgg', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave', 'travel'].includes(type)) return;
   const r = fn(p);
   if (TOUCH.includes(type) && G.state.stage !== 'egg') G.state.lastTouch = G.state.ageMin;   // かまってもらった じかん
   bus.emit('changed', type);
@@ -74,6 +76,7 @@ const A = {
     S.weight += (f.weight || 0) * traitMul(S.tr).weight;
     like('food', id, S.hunger < 60 && S.happy > 45 ? 1 : S.hunger > 85 ? -1 : .3);
     if (fav) S.happy = clamp(S.happy + 10);
+    stat('eat', id);
     if (S.hunger > 70) nudge({ kui: 1 }); else if (f.hunger < 10) nudge({ kui: .8 });
     // わがまま中に おやつ → あまやかし。おなかが すいてる ときの ごはん → きそく ただしく
     if (S.fake) nudge({ sunao: -2.5, kind: .5 });
@@ -119,8 +122,14 @@ const A = {
       say('なんで おこるの…？'); fx('drop'); beep(240, .15);
     }
   },
+  foundHide() {
+    const S = G.state;
+    S.happy = clamp(S.happy + 8); addBond(1); nudge({ kouki: .5, amae: .4 });
+    say(pick(['みつかっちゃった〜！', 'えへへ、さすが！', 'なんで わかったの！？'])); fx('sparkle'); beep(990, .08);
+    G.state.lastTouch = G.state.ageMin;
+  },
   // ---------- どうぐ ----------
-  useTool({ id }) {
+  useTool({ id, ...p }) {
     const S = G.state, tool = TOOLS.find(t => t.id === id);
     if (!(S.inv.tools[id] > 0)) { say('もってないよ'); return false; }
     if (id === 'sandglass') {
@@ -133,24 +142,62 @@ const A = {
     if (id === 'newegg') {
       S.inv.tools[id]--;
       const nm = S.stage === 'egg' ? null : (S.name || 'イカッチ');
-      A.travel({ release: true });
+      A.travel({ release: true, eggId: p.eggId || null });
       log(nm ? `${nm}を うみに かえして、あたらしい たまごを むかえた` : 'あたらしい たまごに とりかえた');
       say('あたらしい たまごが とどいた！'); fx('egg');
       return true;
     }
   },
-  travel({ release = false } = {}) {
+  travel({ release = false, eggId = null, letter = null } = {}) {
     const S = G.state;
-    if (S.stage !== 'egg') S.album.unshift({ gen: S.gen, name: S.name || 'イカッチ', sp: S.sp, form: S.form, hat: S.inv.hat, days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now(), release });
+    const lovers = S.friends.filter(f => S.rel?.[f.pid]?.lover).map(f => f.name);
+    if (S.stage !== 'egg') S.album.unshift({ uid: S.uid, gen: S.gen, name: S.name || 'イカッチ', sp: S.sp, sp2: S.sp2 || null, form: S.form, hat: S.inv.hat,
+      days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now(), release, per: S.per,
+      lovers, kids: S.kids || [], parents: S.parents || [], letter, diary: (S.diary || []).slice(0, 14) });
+    const egg = (S.eggBox || []).find(e => e.id === eggId);
     const keep = { seenSp: S.seenSp, seenPer: S.seenPer, seenForm: S.seenForm, player: S.player, rel: {}, shells: S.shells + (release ? 0 : 20), inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
-                   album: S.album.slice(0, 30), log: S.log, gen: S.gen + 1, rainbowDay: S.rainbowDay, lastDay: S.lastDay };
+                   album: S.album.slice(0, 30), log: S.log, gen: S.gen + 1, rainbowDay: S.rainbowDay, lastDay: S.lastDay,
+                   eggBox: (S.eggBox || []).filter(e => e.id !== eggId) };
     const parent = { name: S.name || 'イカッチ', per: S.per };
     G.state = Object.assign(newState(), keep);
-    G.state.tr = inheritTraits(S.tr); G.state.per = perLabel(G.state.tr, null, G.state.gene);
-    G.state.parent = parent;
+    const N = G.state;
+    if (egg) {   // ふたりの たまご
+      Object.assign(N, { sp: egg.sp, sp2: egg.sp2 || null, tr: { ...egg.tr }, uid: egg.uid, anc: egg.anc, names: egg.names, parents: egg.parents });
+      N.parent = { name: egg.parents.map(p => p.name).join(' と ') };
+    } else if (S.stage !== 'egg') {   // ふつうの たまご（おやは まえの イカ）
+      N.tr = inheritTraits(S.tr);
+      const lin = lineageFor([meAsParent(S)]);
+      Object.assign(N, { anc: lin.anc, names: lin.names, parents: [{ uid: S.uid, name: S.name || 'イカッチ', sp: S.sp, sp2: S.sp2 || null, owner: S.player.name }] });
+      N.parent = parent;
+    } else {   // たまごの まま とりかえ
+      Object.assign(N, { gen: S.gen, parent: S.parent || null, anc: S.anc || {}, names: S.names || {}, parents: S.parents || [] });
+    }
+    N.per = perLabel(N.tr, null, N.gene);
     G.visitor = null;
-    if (S.stage === 'egg') { G.state.gen = S.gen; G.state.parent = S.parent || null; G.state.tr = newState().tr; G.state.per = perLabel(G.state.tr, null, G.state.gene); }
-    else log(`${keep.gen}だいめの たまごが やってきた`);
+    if (S.stage !== 'egg' || egg) log(egg ? `${N.parent.name}の たまごを むかえた（${N.gen}だいめ）` : `${keep.gen}だいめの たまごが やってきた`);
+  },
+  // ---------- ふたりの たまご ----------
+  giveEgg({ id }) {
+    const S = G.state, egg = (S.eggBox || []).find(e => e.id === id);
+    if (!egg) return null;
+    S.eggBox = S.eggBox.filter(e => e.id !== id);
+    const k = (S.kids || []).find(x => x.uid === egg.uid); if (k) k.given = true;
+    log('ふたりの たまごを ともだちに たくした');
+    return { egg: { ...egg, from: 'friend' }, fromName: S.player.name || S.name, from: S.player.id };
+  },
+  receiveEgg({ data }) {
+    const S = G.state, egg = data.egg;
+    if (!egg || !egg.id) return { ok: false, msg: 'たまごが よめなかった' };
+    if (data.from === S.player.id) return { ok: false, msg: 'じぶんが たくした たまごだよ' };
+    if (S.redeemed.includes('egg:' + egg.id)) return { ok: false, msg: 'この たまごは もう うけとったよ' };
+    S.eggBox ||= [];
+    if (S.eggBox.length >= MAX_EGGS) return { ok: false, msg: 'たまごポケットが いっぱいだよ' };
+    S.redeemed = ['egg:' + egg.id, ...S.redeemed].slice(0, 200);
+    S.eggBox.push({ ...egg, from: 'friend', fromName: data.fromName || 'ともだち' });
+    log(`${data.fromName || 'ともだち'}から ${egg.parents.map(p => p.name).join(' と ')}の たまごを あずかった`);
+    remember(`${egg.parents.map(p => p.name).join(' と ')}の たまごを あずかった`, 2);
+    fx('egg'); beep(990, .12);
+    return { ok: true, egg };
   },
   importSave({ data }) {
     G.state = migrate(data); G.state.lastSaved = Date.now(); G.visitor = null;
@@ -192,7 +239,7 @@ const A = {
     if (S.stage === 'egg') return A.talk();
     if (asleepBlock()) return;
     if (Date.now() - G.lastPet < 2500) { say('くすぐったいよ〜'); return; }
-    G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1);
+    G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1); stat('pet');
     nudge(S.fake ? { kind: 1, sunao: -1.5 } : { kind: 1.5, yuki: .6 });   // わがまま中に なでると あまえんぼうに
     S.fake = false;
     say(pick(['えへへ', 'なでなで うれしい！', 'すき〜！'])); fx('heart'); bus.emit('bounce'); beep(980, .05);
@@ -201,7 +248,7 @@ const A = {
     const S = G.state;
     S.energy = clamp(S.energy - 10); S.hunger = clamp(S.hunger - 5); S.happy = clamp(S.happy + (win ? 25 : 10));
     care('play'); addBond(win ? 3 : 2);
-    like('game', game, win ? 1 : S.tr.yuki < 40 ? -1 : -.3);
+    like('game', game, win ? 1 : S.tr.yuki < 40 ? -1 : -.3); stat('game', game, win);
     if (favorite('game') === game) S.happy = clamp(S.happy + 8);
     if (game !== S.lastGame) nudge({ kouki: .8 }); S.lastGame = game;
     nudge(S.fake ? { genki: 2, sunao: -1.5 } : { genki: 2.2, yuki: win ? 1.8 : .4 });
@@ -351,5 +398,5 @@ function rollFind() {
 // ともだちに わたす「カード」= じぶんのイカの みため
 export function makeCard() {
   const S = G.state;
-  return { pid: S.player.id, owner: S.player.name, name: S.name || 'イカッチ', sp: S.sp, per: S.per, tr: S.tr, stage: S.stage, form: S.form, hat: S.inv.hat, title: stageName(S), t: Date.now() };
+  return { pid: S.player.id, owner: S.player.name, name: S.name || 'イカッチ', sp: S.sp, sp2: S.sp2 || null, per: S.per, tr: S.tr, stage: S.stage, form: S.form, hat: S.inv.hat, title: stageName(S), t: Date.now(), ...lineageForCard(S) };
 }

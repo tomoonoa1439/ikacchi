@@ -327,3 +327,55 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .boost.on{display:flex;align-items:center;gap:3px}
 .btncol{display:flex;flex-direction:column;gap:5px;align-items:stretch}
 .btn.blue{background:var(--blue);box-shadow:0 3px 0 #4a9fbd}
+/* ---- からだの いろ（しきそほう）---- */
+.chroma g{opacity:0;transition:opacity 1s}
+.squid-inner{transition:filter 1.2s,opacity 1.2s}
+@keyframes cpop{0%,100%{opacity:.15;transform:scale(.6)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes cwave{0%{opacity:0;transform:translateY(-14px)}50%{opacity:1}100%{opacity:0;transform:translateY(14px)}}
+@keyframes cflick{0%,100%{opacity:.2}50%{opacity:.85}}
+@keyframes cglow{0%,100%{opacity:.15}50%{opacity:.9}}
+.chroma circle,.chroma path{transform-box:fill-box;transform-origin:center}
+[data-skin=ukiuki] .c-dots{opacity:1}[data-skin=ukiuki] .c-dots circle{animation:cpop 1.1s ease-in-out infinite;fill:#fff6b0}
+[data-skin=ukiuki] .squid-inner{filter:brightness(1.12) saturate(1.3)}
+[data-skin=wakuwaku] .c-wave{opacity:.7}[data-skin=wakuwaku] .c-wave path{animation:cwave .9s linear infinite;stroke:#ffe38a}
+[data-skin=wakuwaku] .squid-inner{filter:saturate(1.3)}
+[data-skin=dokidoki] .c-wave{opacity:.9}[data-skin=dokidoki] .c-wave path{animation:cwave 2.2s ease-in-out infinite}
+[data-skin=dokidoki] .squid-inner{filter:hue-rotate(-12deg) saturate(1.2)}
+[data-skin=iraira] .c-stripes{opacity:.85}[data-skin=iraira] .c-stripes path{animation:cflick .6s steps(2) infinite}
+[data-skin=iraira] .squid-inner{filter:saturate(1.7) brightness(.78) contrast(1.1)}
+[data-skin=kamatte] .c-stripes{opacity:.5}[data-skin=kamatte] .c-stripes path{animation:cflick 1.2s infinite}
+[data-skin=kowai] .squid-inner{filter:saturate(.15) brightness(1.35);opacity:.55}
+[data-skin=shonbori] .squid-inner{filter:saturate(.35) brightness(.88)}
+[data-skin=samishii] .squid-inner{filter:saturate(.45) hue-rotate(-25deg) brightness(.95)}
+[data-skin=samishii] .c-dots{opacity:.6}[data-skin=samishii] .c-dots circle{animation:cglow 4s ease-in-out infinite}
+[data-skin=harapeko] .c-dots{opacity:.7}[data-skin=harapeko] .c-dots circle{animation:cflick 2.5s infinite}
+[data-skin=nemu] .squid-inner{filter:brightness(.82) saturate(.7)}
+/* のうりょく：ひかる・かくれる */
+.squid-wrap.shine .c-glow{opacity:1}.squid-wrap.shine .c-glow path{animation:cglow 1s ease-in-out infinite}
+.squid-wrap.shine .squid-inner{filter:brightness(1.35) drop-shadow(0 0 14px #fff6b0)!important}
+.squid-wrap.camo .squid-inner{opacity:.13!important;filter:sepia(1) saturate(.5) brightness(1.1)!important;transition:opacity 1.5s,filter 1.5s}
+.inkcloud{position:absolute;z-index:4;width:90px;height:70px;pointer-events:none;transform:translateX(-50%);
+  background:radial-gradient(circle at 40% 40%,rgba(40,30,60,.85),rgba(40,30,60,.6) 40%,transparent 70%);border-radius:50%;animation:ink 2.4s ease-out forwards}
+@keyframes ink{0%{transform:translateX(-50%) scale(.2);opacity:1}40%{opacity:.95}100%{transform:translateX(-50%) scale(2.3);opacity:0}}
+/* v1.0 かけいず・にっき */
+.menu{grid-template-columns:repeat(6,1fr);gap:5px;padding:7px}
+.mbtn{font-size:10px;padding:7px 1px 5px}.mbtn span .ico{width:20px;height:20px}
+.letter{background:#fffdf6;border:2px solid #f0dfbf;border-radius:14px;padding:12px 14px;text-align:left;font-size:13px;font-weight:700;line-height:1.85;
+  background-image:repeating-linear-gradient(transparent 0 23px,#f3e7cf 23px 24px);background-position:0 8px}
+.dpage{text-align:left;background:#fff;border:2px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:8px;font-size:12.5px;font-weight:700;line-height:1.8}
+.dpage b{display:block;color:var(--accent-d);font-size:12px;margin-bottom:2px}
+.eggmini{width:40px;flex:none}.eggmini svg{width:100%;height:auto}.eggmini.big{width:64px;align-self:flex-end}
+.tree{text-align:center}
+.tgen{position:relative;padding-top:4px}
+.tlbl{display:inline-block;font-size:10px;font-weight:800;color:var(--sub);background:#efe2c5;border-radius:99px;padding:1px 9px;margin-bottom:4px}
+.tgen.me .tlbl{background:#ffe3ea;color:var(--accent-d)}
+.trow{display:flex;justify-content:center;align-items:flex-end;gap:8px;flex-wrap:wrap}
+.check .trow{justify-content:flex-start}
+.tnode{display:flex;flex-direction:column;align-items:center;width:72px;font-size:11px}
+.tnode b{font-size:11.5px;line-height:1.3}.tnode small{font-size:9.5px;color:var(--sub);font-weight:700;line-height:1.25}
+.tsq{width:52px}.tsq svg{width:100%;height:auto;overflow:visible}
+.tnode.self .tsq{width:66px}.tnode.self b{color:var(--accent-d)}
+.tlove{align-self:center;padding-bottom:20px}
+.tline{width:3px;height:14px;background:var(--line);margin:3px auto;border-radius:3px}
+.eggmini{background:radial-gradient(circle,#cdeef7 60%,#bfe6ef);border-radius:50%;padding:4px 5px}
+.tnode .tsq:has(> svg[viewBox="0 0 200 200"]){background:radial-gradient(circle,#cdeef7 60%,#bfe6ef);border-radius:50%;padding:4px}

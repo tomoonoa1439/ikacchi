@@ -243,6 +243,13 @@ const BEHAVIORS = [
   { id: 'explore',  w: t => t.kouki / 90 + t.yuki / 180, run: S => { S.pos = Math.round(rand(14, 86)); say(pick(['あっちに なにか ありそう！', 'たんけん たんけん！', 'こっちは なにが あるかな？'])); } },
   { id: 'scared',   w: (t, S) => t.yuki < 35 && (isNight() || weatherNow() === 'rain') ? .9 : 0, run: S => { say(pick(['…くらいの ちょっと こわい', 'いまの おと なに…？', 'そばに いてね…'])); S.happy = clamp(S.happy - 1); } },
   { id: 'proud',    w: t => t.yuki > 70 ? .5 : 0, run: () => say(pick(['ぼく、けっこう つよいんだよ！', 'なんでも かかってこい！', 'こわいもの なんて ないもん'])) },
+  { id: 'hide',     w: t => .25 + t.kouki / 300 + (100 - t.yuki) / 400, run: S => {   // まわりの いろに とけこんで かくれんぼ
+      G.hideUntil = Date.now() + 9000; bus.emit('camo', 9000);
+      say(pick(['かくれんぼ しよ！ どこでしょう？', 'すなの いろに なっちゃお…', 'さがしてみて〜'])); } },
+  { id: 'shine',    w: (t, S) => isNight() ? .6 + t.genki / 200 : .12, run: S => {
+      bus.emit('shine', 4500); say(pick(['ぴかー！', 'ひかって みた！', 'みて みて、きれいでしょ'])); S.happy = clamp(S.happy + 2); } },
+  { id: 'inkart',   w: t => t.sunao < 40 || t.genki > 70 ? .35 : .08, run: S => {
+      bus.emit('ink'); say(pick(['スミで おえかき〜', 'ぷしゅっ！', 'スミ、どこまで とぶかな'])); } },
   { id: 'chatter',  w: () => .7, run: S => say(pick(PERSONALITY[S.per]?.lines || PERSONALITY.mypace.lines)) },
 ];
 

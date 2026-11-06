@@ -36,11 +36,11 @@ export function unpack(prefix, code) {
 }
 
 // ---- リンク方式（タップするだけで ともだち／プレゼント／ひっこし）----
-//   #f=... ともだちカード   #g=... プレゼント   #m=... ひっこし（セーブデータ）
+//   #f=... ともだちカード   #g=... プレゼント   #m=... ひっこし（セーブデータ）  #e=... ふたりの たまご
 export const linkBase = () => location.origin + location.pathname;
 export function makeLink(kind, obj) { const body = toB64(obj); return `${linkBase()}#${kind}=${body}.${check(kind + body)}`; }
 export function parseLink(text) {
-  const m = String(text || '').replace(/\s+/g, '').match(/#([fgm])=([A-Za-z0-9_-]+)\.([0-9a-z]{3})/);
+  const m = String(text || '').replace(/\s+/g, '').match(/#([fgme])=([A-Za-z0-9_-]+)\.([0-9a-z]{3})/);
   if (!m) return null;
   if (check(m[1] + m[2]) !== m[3]) throw new Error('リンクが とちゅうで きれてるかも');
   try { return { kind: m[1], data: fromB64(m[2]) }; } catch (e) { throw new Error('リンクが よめなかった'); }

@@ -3,7 +3,7 @@
 // =========================================================
 import { CONFIG, FOODS, HATS, DECOR, FINDS, FORMS, SPECIES, TOOLS } from './config.js';
 import { G, bus, rand, pick, dayKey, isNight, timeOfDay, TOD_LABEL, save, newState } from './state.js';
-import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, lifespan, speciesOf } from './sim.js';
+import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, lifespan, speciesOf, spName } from './sim.js';
 import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
 import { net, makeLink } from './net.js';
@@ -11,6 +11,8 @@ import { REL, REL_RULE, relOf, relStage, perOf, friendPer, compat, compatMark } 
 import { cardTraits } from './traits.js';
 import { TRAITS, TKEYS, quirks, moodOf, MOODS, trend, favorite, disliked, itemName, GAME_NAMES } from './traits.js';
 import { EVENT_NAMES } from './events.js';
+import { kinOf, cardUid, MAX_EGGS } from './family.js';
+import { writeLetter, writeDiary } from './story.js';
 import { PERSONALITY } from './config.js';
 import { ic, fillIcons } from './icons.js';
 
@@ -46,6 +48,15 @@ export function beep(f = 600, d = .08) {
   } catch (e) {}
 }
 bus.on('say', say); bus.on('fx', fx); bus.on('beep', beep); bus.on('bounce', bounce);
+// ---- イカの のうりょく ----
+bus.on('ink', () => {   // スミを はく
+  const el = document.createElement('div'); el.className = 'inkcloud';
+  el.style.left = (G.state.stage === 'egg' ? 50 : G.state.pos) + '%'; el.style.bottom = '18%';
+  $('scene').appendChild(el); setTimeout(() => el.remove(), 2500); beep(180, .12);
+});
+const ability = (cls, ms) => { const w = document.querySelector('#pet .squid-wrap'); if (!w) return; w.classList.add(cls); setTimeout(() => w.classList.remove(cls), ms); };
+bus.on('shine', (ms = 4000) => ability('shine', ms));   // ひかる
+bus.on('camo', (ms = 6000) => ability('camo', ms));     // まわりの いろに とけこむ
 bus.on('changed', () => { render(); save(); });
 bus.on('hatched', live => setTimeout(askName, live ? 1200 : 0));
 bus.on('travel', () => setTimeout(openTravel, 300));
@@ -219,6 +230,19 @@ function openShop(tab = shopTab) {
   });
 }
 
+// たまごポケットに たまごが あれば、どの たまごを むかえるか えらぶ
+function chooseEgg(done, cancel) {
+  const S = G.state, box = S.eggBox || [];
+  if (!box.length) return done(null);
+  showModal(`<h3>${ic('egg', 22)} どの たまごを むかえる？</h3>
+    <div class="choices scroll">${box.map(e => `<button class="choice" data-a="pick" data-id="${e.id}"><span class="eggmini">${eggSVG(60, e.sp)}</span>
+      <span class="grow">${esc(e.parents.map(p => p.name).join(' と '))}の たまご<small>${e.from === 'friend' ? esc(e.fromName || 'ともだち') + 'から あずかった' : 'ふたりの たまご'}</small></span></button>`).join('')}
+      <button class="choice" data-a="pick" data-id=""><span class="eggmini">${eggSVG(30, 'momo')}</span><span class="grow">うみからの たまご<small>${S.stage === 'egg' ? 'あたらしい たまご' : esc(S.name || 'イカッチ') + 'の こども'}</small></span></button></div>
+    ${cancel ? `<div class="row"><button class="btn gray" data-a="cancel">やめる</button></div>` : ''}`, {
+    pick: el => done(el.dataset.id || null), cancel: () => cancel && cancel(),
+  }, true);
+}
+
 function useToolUI(id) {
   const S = G.state;
   if (S.paused) { say('ストップちゅうは つかえないよ'); return; }
@@ -226,12 +250,12 @@ function useToolUI(id) {
   if (id === 'newegg') {
     const nm = esc(S.name || 'イカッチ');
     showModal(`<h3>${ic('egg', 22)} あたらしい たまごを むかえる？</h3>
-      ${S.stage === 'egg' ? '<p>いまの たまごと とりかえるよ</p>' : `<div class="zsq hero">${squidSVG(S.stage, 'sad', S.form, S.inv.hat, S.sp)}</div>
+      ${S.stage === 'egg' ? '<p>いまの たまごと とりかえるよ</p>' : `<div class="zsq hero">${squidSVG(S.stage, 'sad', S.form, S.inv.hat, S.sp, S.sp2)}</div>
       <p>${nm}を うみに かえして、あたらしい たまごを むかえます。<br><b>${nm}には もう あえなく なるよ。</b></p>
       <p class="note">かいがら・もちもの・ともだち・ずかんは そのまま。${nm}は アルバムに のこるよ</p>`}
       <div class="row"><button class="btn gray" data-a="back">やめる</button><button class="btn" data-a="go">${ic('egg', 16)} むかえる</button></div>`, {
       back: () => openShop('tool'),
-      go: () => { closeModal(); dispatch('useTool', { id }); render(); save(); },
+      go: () => chooseEgg(eggId => { closeModal(); dispatch('useTool', { id, eggId }); render(); save(); }, () => openShop('tool')),
     }, true);
   }
 }
@@ -275,20 +299,50 @@ function openZukan(tab = zukanTab) {
   }
   if (tab === 'album') {
     body = S.album.length ? `<div class="choices">${S.album.map(a => { const f = FORMS[a.form] || FORMS.surume, sp = speciesOf(a.sp); return `
-      <div class="choice"><span class="asq">${squidSVG('adult', 'happy', a.form, a.hat, a.sp || 'momo')}</span>
-      <span class="grow">${a.gen}だいめ ${esc(a.name)}<small>${(f.prefix ? f.prefix + ' ' : '') + sp.name}・${a.release ? 'うみに かえした・' : ''}${a.days}にち いっしょに いた・なかよしLv.${a.bond}・ミス${a.mistakes}</small></span></div>`; }).join('')}</div>`
+      <button class="choice" data-a="alb" data-i="${S.album.indexOf(a)}"><span class="asq">${squidSVG('adult', 'happy', a.form, a.hat, a.sp || 'momo', a.sp2)}</span>
+      <span class="grow">${a.gen}だいめ ${esc(a.name)}<small>${(f.prefix ? f.prefix + ' ' : '') + sp.name}・${a.release ? 'うみに かえした・' : ''}${a.days}にち いっしょに いた${a.letter ? '・てがみ あり' : ''}</small></span></button>`; }).join('')}</div>`
       : '<p>まだ たびだった イカは いないよ<br>おとなに なって しばらくすると、ひろい うみへ たびだつよ</p>';
   }
   showModal(`<h3>${ic('book', 20)} ずかん</h3>${tabs([['finds', 'もの'], ['forms', 'すがた'], ['per', 'せいかく'], ['event', 'できごと'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
     tab: el => openZukan(el.dataset.t),
+    alb: el => openAlbumEntry(+el.dataset.i),
     sell: el => { dispatch('sell', { id: el.dataset.id }); openZukan(); },
   });
 }
 
+function openAlbumEntry(i) {
+  const a = G.state.album[i]; if (!a) return;
+  const dkFmt = dk => { const [y, m, d] = dk.split('-'); return `${m}/${d}`; };
+  showModal(`<h3>${ic('book', 20)} ${a.gen}だいめ ${esc(a.name)}</h3>
+    <div class="zsq hero">${squidSVG('adult', 'happy', a.form, a.hat, a.sp || 'momo', a.sp2)}</div>
+    <div class="scroll">
+      <div class="check">
+        <div><span>すがた</span><b>${esc(spName(a.sp || 'momo', a.sp2))}</b></div>
+        ${a.per ? `<div><span>せいかく</span><b>${perOf(a.per).name}</b></div>` : ''}
+        ${a.parents?.length ? `<div><span>おや</span><b>${esc(a.parents.map(p => p.name).join(' と '))}</b></div>` : ''}
+        ${a.lovers?.length ? `<div><span>こいびと</span><b>${esc(a.lovers.join('・'))}</b></div>` : ''}
+        ${a.kids?.length ? `<div><span>こども</span><b>${a.kids.length}にん</b></div>` : ''}
+        <div><span>いっしょに いた</span><b>${a.days}にち</b></div>
+      </div>
+      ${a.letter ? `<h4>のこした てがみ</h4><div class="letter">${esc(a.letter).replace(/\n/g, '<br>')}</div>` : ''}
+      ${a.diary?.length ? `<h4>にっき</h4>${a.diary.map(d => `<div class="dpage"><b>${dkFmt(d.dk)}</b><div>${esc(d.text).replace(/\n/g, '<br>')}</div></div>`).join('')}` : ''}
+    </div>
+    <div class="row"><button class="btn gray" data-a="back">もどる</button></div>`, { back: () => openZukan('album') });
+}
+
 /* ---------------- にっき ---------------- */
-function openDiary() {
+let diaryTab = 'squid';
+function openDiary(tab = diaryTab) {
+  diaryTab = tab;
   const S = G.state, fmt = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-  showModal(`<h3>${ic('diary', 20)} にっき</h3><div class="scroll log">${S.log.length ? S.log.map(l => `<div><span>${fmt(l.t)}</span>${esc(l.text)}</div>`).join('') : '<p>まだ なにも ないよ</p>'}</div>${closeBtn()}`);
+  const dkFmt = dk => { const [y, m, d] = dk.split('-'); return `${m}がつ ${d}にち`; };
+  const body = tab === 'squid'
+    ? ((S.diary || []).length ? S.diary.map(d => `<div class="dpage"><b>${dkFmt(d.dk)}</b><div>${esc(d.text).replace(/\n/g, '<br>')}</div></div>`).join('')
+      : `<p>${S.stage === 'egg' ? 'うまれたら にっきを かくよ' : 'にっきは 1にちの おわりに イカが じぶんで かくよ。<br>あしたに なったら よんでみてね'}</p>`)
+    : `<div class="log">${S.log.length ? S.log.map(l => `<div><span>${fmt(l.t)}</span>${esc(l.text)}</div>`).join('') : '<p>まだ なにも ないよ</p>'}</div>`;
+  showModal(`<h3>${ic('diary', 20)} にっき</h3>${tabs([['squid', `${esc(S.name || 'イカ')}の にっき`], ['log', 'きろく']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
+    tab: el => openDiary(el.dataset.t),
+  });
 }
 
 /* ---------------- かんけい ---------------- */
@@ -401,6 +455,15 @@ export function handleLink(r) {
     acceptFriend(r.data);
   }
   if (r.kind === 'g') acceptGift(r.data);
+  if (r.kind === 'e') {
+    const res = dispatch('receiveEgg', { data: r.data });
+    if (!res.ok) { say(res.msg); beep(260, .1); return; }
+    const e = res.egg;
+    showModal(`<h3>${ic('egg', 22)} たまごを あずかった！</h3>
+      <div class="pair">${e.parents.map(p => squidSVG('adult', 'happy', null, null, p.sp || 'momo', p.sp2)).join('')}</div>
+      <p>${esc(r.data.fromName || 'ともだち')}から、${esc(e.parents.map(p => p.name).join(' と '))}の たまごが とどいたよ。</p>
+      <p class="note">「かけいず」の たまごポケットに しまったよ。<br>いまの イカが たびだったら、この たまごを むかえられるよ</p>${closeBtn()}`);
+  }
   if (r.kind === 'm') {
     const d = r.data;
     showModal(`<h3>${ic('box', 20)} ひっこし</h3><p>「${esc(d.name || 'たまご')}」（${d.gen || 1}だいめ）の データを よみこみます。<br><b>いまの この ばしょの データは きえます。</b></p>
@@ -438,7 +501,7 @@ function openCheck() {
   showModal(`<h3>${ic('search', 20)} しらべる</h3>
     <div class="scroll"><div class="check">
       <div><span>なまえ</span><b>${esc(S.name || 'イカッチ')}（${S.gen}だいめ）</b></div>
-      <div><span>しゅるい</span><b>${speciesOf(S.sp).name}</b></div>
+      <div><span>しゅるい</span><b>${spName(S.sp, S.sp2)}</b></div>
       <div class="perbox"><span>せいかく</span><b>${perName(S)}</b>${perKnown(S) ? `<small>${perOf(S.per).desc}</small>
         <div class="tags">${quirks(S.tr).map(q => `<em class="qtag">${q.name}</em>`).join('')}</div>` : '<small>どんな こに なるかな？</small>'}
         <small>いまの きぶん：<b>${MOODS[moodOf(S)] || ''}</b></small>
@@ -472,7 +535,7 @@ function openMind() {
   const fmt = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
   showModal(`<h3>${ic('heart', 22)} ${esc(S.name || 'イカッチ')}の こころ</h3>
     <div class="scroll">
-      <div class="zsq hero">${squidSVG(S.stage, moodOf(S) === 'ukiuki' ? 'happy' : 'normal', S.form, S.inv.hat, S.sp)}</div>
+      <div class="zsq hero">${squidSVG(S.stage, moodOf(S) === 'ukiuki' ? 'happy' : 'normal', S.form, S.inv.hat, S.sp, S.sp2)}</div>
       <div class="mindtop"><b class="ptype">${perName(S)}</b>${known ? `<small>${perOf(S.per).desc}</small>
         <div class="tags">${quirks(S.tr).map(q => `<em class="qtag">${q.name}</em>`).join('')}</div>` : '<small>まだ ちいさくて どんな こか わからない</small>'}</div>
       ${known && sense.length ? `<p class="feel">${sense.map(x => `さいきん、${TREND_WORDS[x.k][x.d > 0 ? 0 : 1]} きがする…`).join('<br>')}</p>` : ''}
@@ -490,7 +553,7 @@ function openMind() {
 bus.on('perreveal', () => setTimeout(() => eventModal(() => {
   const S = G.state, p = perOf(S.per);
   showModal(`<h3>${ic('sparkle', 22)} どんな こか わかってきた！</h3>
-    <div class="zsq hero">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp)}</div>
+    <div class="zsq hero">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp, S.sp2)}</div>
     <p>${esc(S.name || 'イカッチ')}は…<br><b class="big">${p.name}</b> みたい！</p><p class="note">${p.desc}</p>${closeBtn()}`);
   fx('sparkle'); beep(990, .1);
 }), 200));
@@ -498,11 +561,62 @@ bus.on('perchange', d => setTimeout(() => eventModal(() => {
   const S = G.state;
   if (!perKnown(S)) return;
   showModal(`<h3>${ic('sparkle', 22)} せいかくが かわった！</h3>
-    <div class="zsq hero">${squidSVG(S.stage === 'egg' ? 'baby' : S.stage, 'happy', S.form, S.inv.hat, S.sp)}</div>
+    <div class="zsq hero">${squidSVG(S.stage === 'egg' ? 'baby' : S.stage, 'happy', S.form, S.inv.hat, S.sp, S.sp2)}</div>
     <p>さいきんの ${esc(S.name || 'イカッチ')}は…<br><b>${PERSONALITY[d.from]?.name || ''}</b> → <b class="big">${PERSONALITY[d.to].name}</b></p>
     <p class="note">${PERSONALITY[d.to].desc}</p>${closeBtn()}`);
   fx('sparkle'); beep(990, .1);
 }), 400));
+
+/* ---------------- ふたりの たまご ---------------- */
+bus.on('coupleEgg', d => setTimeout(() => eventModal(() => {
+  const S = G.state, v = G.visitor;
+  showModal(`<h3>${ic('egg', 22)} ふたりの たまごが うまれた！</h3>
+    <div class="pair love">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp, S.sp2)}<span class="eggmini big">${eggSVG(70, d.egg.sp)}</span>${v ? squidSVG(v.card.stage, 'happy', v.card.form, v.card.hat, v.card.sp || 'momo', v.card.sp2) : ''}</div>
+    <p>${esc(S.name || 'イカッチ')}と ${esc(d.name)}の あいだに、ちいさな たまごが…！</p>
+    <p class="note">たまごは「かけいず」の たまごポケットに しまったよ。<br>つぎの せだいで むかえるか、${esc(d.name)}の おうちに たくそう</p>
+    <div class="row"><button class="btn gray" data-a="close">とじる</button><button class="btn" data-a="tree">${ic('tree', 18)} かけいずを みる</button></div>`, { tree: openTree });
+  fx('heart'); fx('egg', 30); beep(880, .1); setTimeout(() => beep(1180, .14), 160);
+}), 300));
+
+/* ---------------- かけいず ---------------- */
+const DEPTH_NAME = { 1: 'おや', 2: 'おじいちゃん・おばあちゃん', 3: 'ひいおじいちゃん・ひいおばあちゃん', 4: 'ごせんぞさま' };
+function node(p, label, cls = '') {
+  return `<div class="tnode ${cls}"><div class="tsq">${p.stage === 'egg' ? eggSVG(50, p.sp) : squidSVG(p.stage || 'adult', 'happy', p.form || null, p.hat || null, p.sp || 'momo', p.sp2)}</div><b>${esc(p.name || '？')}</b>${label ? `<small>${label}</small>` : ''}</div>`;
+}
+function openTree() {
+  const S = G.state;
+  const byDepth = {};
+  for (const [u, d] of Object.entries(S.anc || {})) (byDepth[d] ||= []).push({ ...(S.names?.[u] || { name: '？' }), uid: u });
+  const depths = Object.keys(byDepth).map(Number).sort((a, b) => b - a);
+  const lover = S.friends.find(f => S.rel?.[f.pid]?.lover);
+  const kin = S.friends.map(f => ({ f, k: kinOf(f) })).filter(x => x.k);
+  const box = S.eggBox || [];
+  showModal(`<h3>${ic('tree', 22)} かけいず</h3>
+    <div class="scroll tree">
+      ${depths.map(d => `<div class="tgen"><span class="tlbl">${DEPTH_NAME[d] || 'ごせんぞさま'}</span><div class="trow">${byDepth[d].map(p => node(p, p.owner && p.owner !== S.player.name ? esc(p.owner) + 'の いえ' : '')).join('')}</div></div><div class="tline"></div>`).join('')}
+      <div class="tgen me"><span class="tlbl">いま</span><div class="trow">
+        ${node({ name: S.name || (S.stage === 'egg' ? 'たまご' : 'イカッチ'), stage: S.stage, form: S.form, hat: S.inv.hat, sp: S.sp, sp2: S.sp2 }, `${S.gen}だいめ`, 'self')}
+        ${lover ? `<span class="tlove">${ic('heart', 20)}</span>${node({ ...lover, stage: lover.stage }, 'こいびと')}` : ''}
+      </div></div>
+      ${(S.kids || []).length ? `<div class="tline"></div><div class="tgen"><span class="tlbl">こども</span><div class="trow">${S.kids.map(k => node({ name: k.given ? 'たくした たまご' : 'たまご', stage: 'egg', sp: k.sp }, k.given ? esc(k.with) + 'の いえへ' : 'ポケットに')).join('')}</div></div>` : ''}
+      <h4>たまごポケット（${box.length} / ${MAX_EGGS}）</h4>
+      ${box.length ? `<div class="choices">${box.map(e => `<div class="choice"><span class="eggmini">${eggSVG(60, e.sp)}</span><span class="grow">${esc(e.parents.map(p => p.name).join(' と '))}の たまご<small>${e.from === 'friend' ? esc(e.fromName || 'ともだち') + 'から あずかった' : 'つぎの せだいで むかえられるよ'}</small></span>
+        ${e.from === 'mine' ? `<button class="btn sm" data-a="give" data-id="${e.id}">${ic('link', 14)} たくす</button>` : ''}</div>`).join('')}</div>`
+        : '<p class="note">こいびとどうしに なると、まれに ふたりの たまごが うまれるよ</p>'}
+      <h4>しんせき</h4>
+      ${kin.length ? `<div class="choices">${kin.map(({ f, k }) => `<div class="choice"><span class="asq">${squidSVG(f.stage === 'egg' ? 'baby' : f.stage, 'happy', f.form, f.hat, f.sp || 'momo', f.sp2)}</span><span class="grow">${esc(f.name)}<small>${esc(f.owner || '')}の いえの ${k}</small></span></div>`).join('')}</div>`
+        : '<p class="note">ともだちの いえに しんせきが いると、ここに でるよ</p>'}
+      ${S.album.length ? `<h4>れきだいの イカ</h4><div class="trow wrap">${S.album.slice(0, 12).map(a => node({ ...a, stage: 'adult' }, `${a.gen}だいめ${a.lovers?.length ? '・こいびと ' + esc(a.lovers[0]) : ''}`)).join('')}</div>` : ''}
+    </div>${closeBtn()}`, {
+    give: async el => {
+      const pkg = dispatch('giveEgg', { id: el.dataset.id }); if (!pkg) return;
+      const url = makeLink('e', pkg); save();
+      showModal(`<h3>${ic('egg', 22)} たまごを たくす</h3><p>この リンクを ともだちに おくってね。<br>ともだちの いえで そだてて もらえるよ</p>
+        <textarea id="codeOut" readonly>${esc(url)}</textarea><div class="row"><button class="btn sm" data-a="copy">${ic('clip', 16)} コピー</button></div>${closeBtn()}`, { copy: () => copyCode(url) });
+      await shareLink(url, `${pkg.egg.parents.map(p => p.name).join('と')}の たまごだよ。そだててね`);
+    },
+  });
+}
 
 /* ---------------- うみの ハプニング ---------------- */
 bus.on('happening', ev => setTimeout(() => eventModal(() => {
@@ -514,13 +628,13 @@ bus.on('happening', ev => setTimeout(() => eventModal(() => {
     clearTimeout(timer);
     const r = ev.resolve(helped);
     showModal(`<h3>${ic(r.icon, 22)} ${r.good ? 'よかった！' : 'あらら…'}</h3>
-      <div class="pair">${squidSVG(S.stage, r.good ? 'happy' : 'sad', S.form, S.inv.hat, S.sp)}<span class="evic">${ic(ev.actor, 56)}</span></div>
+      <div class="pair">${squidSVG(S.stage, r.good ? 'happy' : 'sad', S.form, S.inv.hat, S.sp, S.sp2)}<span class="evic">${ic(ev.actor, 56)}</span></div>
       <p>${esc(r.text).replace(/\n/g, '<br>')}</p>${closeBtn()}`);
     $('actor').className = 'actor'; $('actor').innerHTML = '';
     beep(r.good ? 880 : 260, .12); render(); save();
   };
   showModal(`<h3>${ic(ev.actor, 24)} ${esc(ev.title)}</h3>
-    <div class="pair">${squidSVG(S.stage, 'normal', S.form, S.inv.hat, S.sp)}<span class="evic bob">${ic(ev.actor, 56)}</span></div>
+    <div class="pair">${squidSVG(S.stage, 'normal', S.form, S.inv.hat, S.sp, S.sp2)}<span class="evic bob">${ic(ev.actor, 56)}</span></div>
     <p>${esc(ev.intro)}</p>
     ${ev.help ? `<div class="row"><button class="btn big" data-a="help">${esc(ev.help.label)}</button></div><div class="qte"><i style="animation-duration:${ev.help.ms}ms"></i></div>
 `
@@ -533,12 +647,20 @@ bus.on('happening', ev => setTimeout(() => eventModal(() => {
 function openTravel() {
   const S = G.state;
   if (!S.travelReady) return;
+  const letter = writeLetter();
   showModal(`<h3>${ic('wave', 20)} たびだちの とき</h3>
-    <p>りっぱな ${stageName(S)}に そだった「${esc(S.name || 'イカッチ')}」は、<br>ひろい うみへ たびだつ ときが きたみたい。</p>
-    <p>いままで ありがとう！<br>アルバムに のこして、つぎの たまごを うけとろう。</p>
-    <p class="note">もちもの・かいがら・ともだちは そのまま。${ic('shell', 20)}+20</p>
-    <div class="row"><button class="btn" data-a="go">${ic('hand', 20)} みおくる</button></div>`, {
-    go: () => { const nm = S.name; dispatch('travel'); closeModal(); say(`${nm || 'イカッチ'}、げんきでね！ つぎの たまごが とどいたよ`); fx('egg'); },
+    <div class="zsq hero">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp, S.sp2)}</div>
+    <p>りっぱな ${stageName(S)}に そだった「${esc(S.name || 'イカッチ')}」は、ひろい うみへ たびだつ ときが きたみたい。</p>
+    <p>${esc(S.name || 'イカッチ')}から てがみが あるよ</p>
+    <div class="row"><button class="btn" data-a="read">${ic('letter', 18)} てがみを よむ</button></div>`, {
+    read: () => showModal(`<h3>${ic('letter', 22)} てがみ</h3><div class="scroll"><div class="letter">${esc(letter).replace(/\n/g, '<br>')}</div></div>
+      <p class="note">てがみは アルバムから いつでも よめるよ。もちもの・かいがら・ともだちは そのまま</p>
+      <div class="row"><button class="btn" data-a="go">${ic('hand', 20)} みおくる</button></div>`, {
+      go: () => chooseEgg(eggId => {
+        const nm = S.name; dispatch('travel', { eggId, letter }); closeModal();
+        say(`${nm || 'イカッチ'}、げんきでね！ ${eggId ? 'ふたりの たまごを むかえたよ' : 'つぎの たまごが とどいたよ'}`); fx('egg'); render(); save();
+      }),
+    }, true),
   }, true);
 }
 
@@ -553,7 +675,7 @@ function openVisitor() {
     : r.lover ? 'ふたりで よりそって いる' : 'なにして あそぶか かんがえてる みたい';
   showModal(`<h3>${ic('squid', 20)} ${esc(you)}</h3>
     <p>${esc(v.card.owner || 'ともだち')}の ${esc(v.card.title || '')}</p>
-    <div class="pair">${squidSVG(S.stage, r.kenka ? 'sad' : 'happy', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, r.kenka ? 'sad' : 'happy', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>
+    <div class="pair">${squidSVG(S.stage, r.kenka ? 'sad' : 'happy', S.form, S.inv.hat, S.sp, S.sp2)}${squidSVG(v.card.stage, r.kenka ? 'sad' : 'happy', v.card.form, v.card.hat, v.card.sp || 'momo', v.card.sp2)}</div>
     <div class="pers"><span>${esc(me)}<b>${perName(S)}</b></span><span>${esc(you)}<b>${v.card.stage === 'baby' ? 'まだ わからない' : perOf(friendPer(v.card)).name}</b></span></div>
     <div class="relbox">${relBadge(pid)}</div>
     <p class="${r.kenka ? 'kenka' : ''}">いま：${doing}</p>
@@ -564,7 +686,7 @@ function openVisitor() {
 }
 
 // ---- かんけいの イベント（えらぶ ボタンは なし。けっかを みまもるだけ）----
-const pairOf = (m1, m2) => { const S = G.state, v = G.visitor; return `<div class="pair">${squidSVG(S.stage, m1, S.form, S.inv.hat, S.sp)}${v ? squidSVG(v.card.stage, m2, v.card.form, v.card.hat, v.card.sp || 'momo') : ''}</div>`; };
+const pairOf = (m1, m2) => { const S = G.state, v = G.visitor; return `<div class="pair">${squidSVG(S.stage, m1, S.form, S.inv.hat, S.sp, S.sp2)}${v ? squidSVG(v.card.stage, m2, v.card.form, v.card.hat, v.card.sp || 'momo', v.card.sp2) : ''}</div>`; };
 bus.on('kenka', d => setTimeout(() => eventModal(() => {
   showModal(`<h3>${ic('angry', 22)} けんかに なっちゃった！</h3>
     <p>${esc(G.state.name || 'イカッチ')}と ${esc(d.name)}は ${esc(d.why)}…</p>${pairOf('sad', 'sad')}
@@ -601,7 +723,7 @@ bus.on('relchange', d => {
   setTimeout(() => eventModal(() => {
     const v = G.visitor, S = G.state;
     showModal(`<h3>${ic(d.after === 'koibito' ? 'heart' : 'party', 22)} ${esc(d.name)}と ${msg}</h3>
-      ${v ? `<div class="pair ${d.after === 'koibito' ? 'love' : ''}">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp)}${squidSVG(v.card.stage, 'happy', v.card.form, v.card.hat, v.card.sp || 'momo')}</div>` : ''}
+      ${v ? `<div class="pair ${d.after === 'koibito' ? 'love' : ''}">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp, S.sp2)}${squidSVG(v.card.stage, 'happy', v.card.form, v.card.hat, v.card.sp || 'momo', v.card.sp2)}</div>` : ''}
       <p>${{ tomodachi: 'いっしょに あそぶのが たのしく なってきた！', nakayoshi: 'ないしょの はなしも できる なかに なったよ', shinyu: 'なにが あっても みかたで いてくれる、たいせつな ともだち！', koibito: 'ふたりは ラブラブ！ これからも なかよくね' }[d.after]}</p>${closeBtn()}`);
     fx('heart'); fx(d.after === 'koibito' ? 'heart' : 'sparkle', 34); beep(880, .1); setTimeout(() => beep(1180, .14), 140);
   }), 250);
@@ -612,7 +734,7 @@ bus.on('relchange', d => {
 export function askName() {
   const S = G.state;
   if (S.stage === 'egg' || S.name) return;
-  showModal(`<h3>${ic('chick', 20)} ${speciesOf(S.sp).name}が うまれたよ！</h3>${speciesOf(S.sp).rare ? '<p><b class="rare">まぼろしの レアイカ！</b></p>' : ''}<div class="zsq hero">${squidSVG('baby', 'happy', null, null, S.sp)}</div><p>${speciesOf(S.sp).desc}<br>${S.parent ? `おやの ${esc(S.parent.name)}に にてるかな？<br>` : ''}どんな こに そだつかな？<br>なまえを つけてあげよう</p>
+  showModal(`<h3>${ic('chick', 20)} ${spName(S.sp, S.sp2)}が うまれたよ！</h3>${speciesOf(S.sp).rare ? '<p><b class="rare">まぼろしの レアイカ！</b></p>' : ''}<div class="zsq hero">${squidSVG('baby', 'happy', null, null, S.sp, S.sp2)}</div><p>${S.sp2 && S.sp2 !== S.sp ? `${esc((S.parents || []).map(p => p.name).join(' と '))}の こども。ふたりの いいところを まぜた すがた！` : speciesOf(S.sp).desc}<br>${S.parent ? `おやの ${esc(S.parent.name)}に にてるかな？<br>` : ''}どんな こに そだつかな？<br>なまえを つけてあげよう</p>
     <input id="nameInput" maxlength="8" placeholder="イカッチ">
     <div class="row"><button class="btn" data-a="ok">けってい</button></div>`, { ok }, true);
   function ok() { S.name = ($('nameInput').value.trim() || 'イカッチ'); closeModal(); say(`ぼく ${S.name}！ よろしくね`); render(); save(); }
@@ -660,7 +782,8 @@ const MENU = [
   { k: 'dig', ic: 'shovel', t: 'すなほり', fn: openDig },
   { k: 'zukan', ic: 'book', t: 'ずかん', fn: () => openZukan() },
   { k: 'friends', ic: 'friends', t: 'ともだち', fn: () => openFriends() },
-  { k: 'diary', ic: 'diary', t: 'にっき', fn: openDiary },
+  { k: 'tree', ic: 'tree', t: 'かけいず', fn: openTree },
+  { k: 'diary', ic: 'diary', t: 'にっき', fn: () => openDiary() },
 ];
 $('menu').innerHTML = MENU.map(m => `<button class="mbtn" data-k="${m.k}"><span>${ic(m.ic, 22)}</span>${m.t}</button>`).join('');
 $('menu').addEventListener('click', e => { const b = e.target.closest('.mbtn'); if (!b) return; beep(520, .05); if (G.state.paused && ['dig', 'friends'].includes(b.dataset.k)) { say('ストップちゅうだよ。さいかいしてね'); return; } MENU.find(m => m.k === b.dataset.k).fn(); });
@@ -678,6 +801,9 @@ $('vchip').onclick = () => { beep(620, .05); openVisitor(); };
 $('messes').addEventListener('click', e => { const m = e.target.closest('.mess'); if (m) dispatch('cleanOne', { i: +m.dataset.i }); });
 
 /* ---------------- 描画 ---------------- */
+// きぶん → からだの いろ・もよう（もじを みなくても きもちが わかる）
+const SKIN = { ukiuki: 'ukiuki', wakuwaku: 'wakuwaku', dokidoki: 'dokidoki', iraira: 'iraira', kowai: 'kowai', shonbori: 'shonbori',
+  samishii: 'samishii', harapeko: 'harapeko', nemunemu: 'nemu', suya: 'nemu', kamatte: 'kamatte' };
 export function mood(S = G.state) {
   if (S.sleeping) return 'sleep';
   if (S.sick) return 'sick';
@@ -732,10 +858,15 @@ export function render() {
     wrap.classList.toggle('squirm', !S.sleeping && !G.busy && (S.bladder > 70 || S.fake));
     wrap.classList.toggle('glow', S.stage === 'adult' && !!FORMS[S.form]?.glow);
     wrap.dataset.sp = S.sp;
-    const key = [S.stage, m, S.form, S.inv.hat, S.sp].join('|');
-    if (wrap.dataset.key !== key) { wrap.querySelector('.squid-inner').innerHTML = squidSVG(S.stage, m, S.form, S.inv.hat, S.sp); wrap.dataset.key = key; }
+    wrap.dataset.skin = SKIN[moodOf(S)] || '';
+    const key = [S.stage, m, S.form, S.inv.hat, S.sp, S.sp2].join('|');
+    if (wrap.dataset.key !== key) { wrap.querySelector('.squid-inner').innerHTML = squidSVG(S.stage, m, S.form, S.inv.hat, S.sp, S.sp2); wrap.dataset.key = key; }
   }
-  pet.firstChild.onclick = () => dispatch('pet');
+  pet.firstChild.onclick = () => {
+    // かくれんぼ中に みつけたら
+    if (G.hideUntil > Date.now()) { G.hideUntil = 0; const w = document.querySelector('#pet .squid-wrap'); if (w) w.classList.remove('camo'); dispatch('foundHide'); return; }
+    dispatch('pet');
+  };
   if (perKnown(S)) { S.seenPer ||= []; if (!S.seenPer.includes(S.per)) S.seenPer.push(S.per); }
 
   // ストップ
@@ -753,10 +884,11 @@ export function render() {
     wrap.style.left = v.pos + '%';
     wrap.classList.toggle('glow', c.stage === 'adult' && !!FORMS[c.form]?.glow);
     wrap.dataset.sp = c.sp || 'momo';
+    const rk = relOf(c.pid); wrap.dataset.skin = rk.kenka ? 'iraira' : rk.lover ? 'dokidoki' : 'ukiuki';
     const rr = relOf(c.pid), vm = rr.kenka ? 'sad' : 'happy';
     const key = [c.pid, c.stage, c.form, c.hat, c.sp, vm, relStage(rr)].join('|');
     if (wrap.dataset.key !== key) {
-      wrap.querySelector('.squid-inner').innerHTML = c.stage === 'egg' ? eggSVG(60, c.sp) : squidSVG(c.stage, vm, c.form, c.hat, c.sp || 'momo');
+      wrap.querySelector('.squid-inner').innerHTML = c.stage === 'egg' ? eggSVG(60, c.sp) : squidSVG(c.stage, vm, c.form, c.hat, c.sp || 'momo', c.sp2);
       wrap.querySelector('.tag').innerHTML = `${esc(c.name)}${rr.kenka ? ic('angry', 11) : relHearts(rr).replace(/width="13" height="13"/g, 'width="10" height="10"')}`;
       wrap.dataset.key = key;
     }

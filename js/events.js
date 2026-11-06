@@ -35,7 +35,8 @@ export const EVENTS = [
         if (t.yuki < 40) {
           S.happy = clamp(S.happy - 8); nudge({ yuki: -1 });
           if (chance(.5)) { S.messes.push({ x: Math.round(rand(20, 80)), a: Math.floor(S.ageMin) }); return { text: `${nm()}は こわくて かたまっちゃった…\nタコは いたずらで スミを はいて かえっていった`, icon: 'sweat', good: false }; }
-          return { text: `${nm()}は いわの かげに かくれて ふるえていた…`, icon: 'sweat', good: false };
+          bus.emit('ink');
+          return { text: `${nm()}は びっくりして スミを ぷしゅっ！\nまっくらな うちに いわの かげへ にげこんだ`, icon: 'sweat', good: false };
         }
         S.happy = clamp(S.happy + 6); nudge({ kouki: .8 });
         return { text: `${nm()}と タコは しばらく にらめっこ。\nタコは ぷいっと かえっていった`, icon: 'eyes', good: true };
@@ -54,7 +55,10 @@ export const EVENTS = [
         if (!chance(bite)) {
           nudge(helped ? { sunao: 1, yuki: .5 } : { yuki: 1.2, kui: -.5 });
           if (helped) addBond(2);
-          return { text: helped ? `「にげて！」の こえで ${nm()}は さっと にげた！\nあぶなかった…` : `${nm()}は つりばりに きづいて じぶんで にげた！`, icon: 'sparkle', good: true };
+          const how = t.yuki < 45 ? 'ink' : t.kouki > 55 ? 'camo' : 'run';
+          bus.emit(how === 'ink' ? 'ink' : how === 'camo' ? 'camo' : 'bounce');
+          const act = how === 'ink' ? 'スミを はいて めくらまし！ そのすきに' : how === 'camo' ? 'からだの いろを すなと おなじに して' : 'くるっと むきを かえて';
+          return { text: helped ? `「にげて！」の こえで、${nm()}は ${act} にげた！\nあぶなかった…` : `${nm()}は つりばりに きづいて、${act} にげた！`, icon: 'sparkle', good: true };
         }
         // つられかけるけど、にがしてもらえる（こわい おもいで）
         S.energy = clamp(S.energy - 30); S.happy = clamp(S.happy - 20);
@@ -77,10 +81,12 @@ export const EVENTS = [
         }
         if (chance(safe)) {
           nudge(helped ? { sunao: .8 } : { genki: .5 });
-          return { text: `${nm()}は ${hide ? 'かざりの かげに' : 'すなに もぐって'} かくれた。\nさかなは きづかずに いってしまった`, icon: 'sparkle', good: true };
+          if (!hide) bus.emit('camo', 5000);
+          return { text: hide ? `${nm()}は かざりの かげに さっと かくれた。\nさかなは きづかずに いってしまった` : `${nm()}は からだの いろを すなと そっくりに かえて、じっと した。\nさかなは きづかずに いってしまった`, icon: 'sparkle', good: true };
         }
         S.happy = clamp(S.happy - 12); S.energy = clamp(S.energy - 15); nudge({ yuki: -2 });
-        return { text: `${nm()}は おおあわてで にげまわって へとへと…\nなんとか にげきれたけど、こわかった`, icon: 'sweat', good: false };
+        bus.emit('ink');
+        return { text: `${nm()}は スミを はきながら おおあわてで にげまわって へとへと…\nなんとか にげきれたけど、こわかった`, icon: 'sweat', good: false };
       } }) },
 
   { id: 'star', w: () => isNight() ? 1.4 : 0, run: (S, t) => ({
@@ -92,8 +98,8 @@ export const EVENTS = [
           : t.kouki > 65 ? ['もっと いろんな ところに いけますように', () => { S.treasure = true; }]
           : t.amae > 65 ? ['ずっと いっしょに いられますように', () => { addBond(5); }]
           : ['あしたも いい ひに なりますように', () => { S.shells += 3; }];
-        wish[1](); S.happy = clamp(S.happy + 10); remember(`ながれぼしに「${wish[0]}」って おねがいした`, 2);
-        return { text: `${nm()}は めを つぶって おねがい した。\n「${wish[0]}」`, icon: 'sparkle', good: true };
+        wish[1](); S.happy = clamp(S.happy + 10); bus.emit('shine', 5000); remember(`ながれぼしに「${wish[0]}」って おねがいした`, 2);
+        return { text: `${nm()}は ながれぼしに こたえるように からだを ぽうっと ひからせて、おねがい した。\n「${wish[0]}」`, icon: 'sparkle', good: true };
       } }) },
 
   { id: 'bottle', w: () => .7, run: (S, t) => ({
@@ -145,9 +151,11 @@ export const EVENTS = [
       intro: 'ぶくぶく… ニンゲンの ダイバーが しゃしんを とろうと している',
       resolve() {
         if (t.yuki > 60 && t.amae < 75) { S.happy = clamp(S.happy + 8); nudge({ yuki: 1 }); remember('ダイバーに しゃしんを とってもらった', 2);
-          return { text: `${nm()}は ばっちり ポーズ！ パシャッ！\nいつか ざっしに のるかも？`, icon: 'camera', good: true }; }
+          bus.emit('shine', 3000);
+          return { text: `${nm()}は からだを キラキラ ひからせて ばっちり ポーズ！ パシャッ！\nいつか ざっしに のるかも？`, icon: 'camera', good: true }; }
         nudge({ yuki: -.5 });
-        return { text: `${nm()}は はずかしくて すなに かくれちゃった`, icon: 'sweat', good: false };
+        bus.emit('camo', 5000);
+        return { text: `${nm()}は はずかしくて、からだの いろを すなと おなじに して かくれちゃった`, icon: 'sweat', good: false };
       } }) },
 
   { id: 'lost', w: () => .6, run: (S, t) => ({

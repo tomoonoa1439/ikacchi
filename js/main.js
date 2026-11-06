@@ -8,6 +8,7 @@ import { parseLink } from './net.js';
 import { socialTick, relOf } from './social.js';
 import { idleTick, setWeatherFn } from './traits.js';
 import { eventTick } from './events.js';
+import { diaryCheck } from './story.js';
 
 G.state = load() || newState();
 setWeatherFn(() => weatherToday().id);
@@ -27,6 +28,7 @@ setTimeout(() => {
   else if (S.stage === 'egg' && S.egg.hatch === 0) say('イカの たまごが とどいた！ あたためて ふかそう');
   else if (away.mins > 5 && S.stage !== 'egg') say(away.newMistakes ? `るすのあいだに おせわミスが ${away.newMistakes}かい…` : away.newMesses ? `るすのあいだに ${away.newMesses}かい もらしちゃった…` : 'おかえり！ まってたよ');
   askName();
+  if (diaryCheck()) setTimeout(() => say(`${S.name || 'イカッチ'}が にっきを かいていたよ。「にっき」で よめるよ`), 3600);
   if (S.travelReady) bus.emit('travel', false);
   checkHash();
 }, 500);
@@ -46,7 +48,7 @@ setInterval(() => {
     G.visitor.pos = r.kenka ? Math.round(rand(80, 86)) : r.lover && !S.sleeping ? Math.min(84, S.pos + 26) : Math.round(rand(62, 78));
     socialTick();
   }
-  if (tick % 5 === 0) { idleTick(); eventTick(); }
+  if (tick % 5 === 0) { idleTick(); eventTick(); if (diaryCheck()) say(`${S.name || 'イカッチ'}が きのうの にっきを かいたよ`); }
   render();
   if (tick % 5 === 0) save();
 }, 1000);

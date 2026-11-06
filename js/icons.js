@@ -95,6 +95,8 @@ const P = {
   play: `<path d="M9 5l18 11-18 11z" fill="#7cc68d" ${s}/>`,
   sandglass: `<path d="M8 3h16M8 29h16" stroke="${O}" stroke-width="3" stroke-linecap="round"/><path d="M10 4c0 7 5 9 5 12s-5 5-5 12h12c0-7-5-9-5-12s5-5 5-12z" fill="#e3f5fb" ${s}/>
     <path d="M12.5 8h7c-.5 3-3.5 5-3.5 6.5S12.5 11 12.5 8zM11.5 27c.5-4 3-5.5 4.5-6 1.5.5 4 2 4.5 6z" fill="#f6c85f"/><path d="M16 15v6" stroke="#f6c85f" stroke-width="1.4"/>`,
+  tree: `<path d="M16 29v-9M16 22l-6-5M16 20l6-4" stroke="#b98552" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="9" r="6" fill="#ff9fb3" ${s}/><circle cx="7" cy="15" r="4.5" fill="#8fd3f4" ${s}/><circle cx="25" cy="14" r="4.5" fill="#f6c85f" ${s}/><path d="M11 29h10" ${s}/>`,
+  letter: `<rect x="3" y="7" width="26" height="19" rx="3" fill="#fff" ${s}/><path d="M4 9l12 9 12-9" fill="none" ${s}/><path d="M16 21.5s-3-1.8-3-3.6a1.6 1.6 0 0 1 3-.8 1.6 1.6 0 0 1 3 .8c0 1.8-3 3.6-3 3.6z" fill="#ff6f8f"/>`,
   // ---- ハプニング ----
   tako: `<path d="M8 20c-3 3-5 6-3 8M12 21c-1 3-1 6-3 8M16 21v8M20 21c1 3 1 6 3 8M24 20c3 3 5 6 3 8" stroke="#e8657a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
     <path d="M5 16c0-8 5-13 11-13s11 5 11 13c0 4-5 6-11 6S5 20 5 16z" fill="#f47c8e" ${s}/>

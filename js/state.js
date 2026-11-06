@@ -57,6 +57,8 @@ export function newState() {
     // ---- イカ ----
     stage: 'egg', form: null, name: '', ageMin: 0, sp: rollSpecies(), seenSp: [], tr, gene, per: perLabel(tr, null, gene), seenPer: [], seenForm: [],
     likes: { food: {}, game: {}, hat: {} }, mem: [], trHist: [], lastTouch: 0,
+    uid: genId(), sp2: null, anc: {}, names: {}, parents: [], eggBox: [], kids: [],
+    diary: [], diaryDay: dayKey(), dayStat: {},
     egg: { warmth: 55, water: 100, hatch: 0 },
     hunger: 70, energy: 80, bladder: 10, happy: 70, clean: 100,
     messes: [], sleeping: false, sick: false, sickTimer: 0, pos: 50,
