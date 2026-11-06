@@ -12,6 +12,7 @@
 // =========================================================
 import { G, bus, clamp, rand, pick, isNight, hashStr } from './state.js';
 import { PERSONALITY, FOODS, HATS } from './config.js';
+import { missLine, dreamLine } from './memory.js';
 
 export const TRAITS = {
   kind:  { short: 'やさしさ', name: 'やさしさ',     color: '#ff8fa8', hi: 'やさしい',       lo: 'ちょっと いじわる' },
@@ -236,9 +237,7 @@ const BEHAVIORS = [
   { id: 'lonely',   w: (t, S) => t.amae > 60 && idleMin(S) > 20 ? 1.5 : 0, run: S => {
       say(pick(['…だれか あそんで くれないかな', 'ねえ… どこ？', 'さみしいよ〜'])); if (!S.fake && Math.random() < S.tr.amae / 150) { S.fake = true; S.fakeT = 0; } } },
   { id: 'friend',   w: (t, S) => S.friends.length ? .4 + t.amae / 200 : 0, run: S => {
-      const best = [...S.friends].sort((a, b) => (S.rel?.[b.pid]?.pt || 0) - (S.rel?.[a.pid]?.pt || 0))[0];
-      const r = S.rel?.[best.pid];
-      say(r?.lover ? `${best.name}に あいたいな…` : r?.kenka ? `${best.name}と なかなおり したいな…` : `${best.name}、げんき かな`); } },
+      const t = missLine(S); if (t) say(t); } },
   { id: 'memory',   w: (t, S) => S.mem?.length ? .35 : 0, run: S => { const m = pick(S.mem.slice(0, 8)); say(`${m.text}…　なつかしいな`); } },
   { id: 'explore',  w: t => t.kouki / 90 + t.yuki / 180, run: S => { S.pos = Math.round(rand(14, 86)); say(pick(['あっちに なにか ありそう！', 'たんけん たんけん！', 'こっちは なにが あるかな？'])); } },
   { id: 'scared',   w: (t, S) => t.yuki < 35 && (isNight() || weatherNow() === 'rain') ? .9 : 0, run: S => { say(pick(['…くらいの ちょっと こわい', 'いまの おと なに…？', 'そばに いてね…'])); S.happy = clamp(S.happy - 1); } },
@@ -253,9 +252,11 @@ const BEHAVIORS = [
   { id: 'chatter',  w: () => .7, run: S => say(pick(PERSONALITY[S.per]?.lines || PERSONALITY.mypace.lines)) },
 ];
 
-let cd = 3;
+let cd = 3, dcd = 14;
 export function idleTick() {
   const S = G.state;
+  // ねごと：ねている あいだ ときどき ゆめを みる
+  if (S && S.sleeping && !S.paused && !G.modalOpen && !G.busy && S.stage !== 'egg' && --dcd <= 0) { dcd = 14 + Math.floor(Math.random() * 16); if (Math.random() < .55) say(dreamLine(S)); }
   if (!S || S.stage === 'egg' || S.sleeping || S.paused || S.travelReady || G.busy || G.modalOpen || G.visitor) return;
   snapshot();
   if (--cd > 0) return;

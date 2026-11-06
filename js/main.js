@@ -9,6 +9,7 @@ import { socialTick, relOf } from './social.js';
 import { idleTick, setWeatherFn } from './traits.js';
 import { eventTick } from './events.js';
 import { diaryCheck } from './story.js';
+import { welcomeBack } from './memory.js';
 
 G.state = load() || newState();
 setWeatherFn(() => weatherToday().id);
@@ -26,7 +27,7 @@ setTimeout(() => {
   const S = G.state;
   if (away.daily) { log('きょうも あそびに きた'); say(`きょうも きてくれた！ かいがら+5 ／ きょうの てんき：${w.name}`); }
   else if (S.stage === 'egg' && S.egg.hatch === 0) say('イカの たまごが とどいた！ あたためて ふかそう');
-  else if (away.mins > 5 && S.stage !== 'egg') say(away.newMistakes ? `るすのあいだに おせわミスが ${away.newMistakes}かい…` : away.newMesses ? `るすのあいだに ${away.newMesses}かい もらしちゃった…` : 'おかえり！ まってたよ');
+  else if (away.mins > 5 && S.stage !== 'egg') say(away.newMistakes ? `るすのあいだに おせわミスが ${away.newMistakes}かい…` : away.newMesses ? `るすのあいだに ${away.newMesses}かい もらしちゃった…` : welcomeBack(away.mins));
   askName();
   if (diaryCheck()) setTimeout(() => say(`${S.name || 'イカッチ'}が にっきを かいていたよ。「にっき」で よめるよ`), 3600);
   if (S.travelReady) bus.emit('travel', false);

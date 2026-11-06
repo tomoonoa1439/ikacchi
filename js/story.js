@@ -28,6 +28,7 @@ const V = {
   yuru:   { I: 'ぼく', good: ['よかったな〜。', 'まあ、いい ひだったな〜。'], bad: ['…ま、いっか〜。', 'そういう ひも あるよね〜。'], open: ['きょうは どんな ひだったかな〜。', 'のんびり かくか〜。'], close: ['さて、ねよっと。', 'おやすみ〜。'] },
 };
 const voiceOf = per => V[VOICE_OF[per] || 'yuru'];
+export const voiceKey = per => VOICE_OF[per] || 'yuru';
 
 // その ひの きろく（log）から できごとを ひろう
 const PATTERNS = [
@@ -50,6 +51,8 @@ const PATTERNS = [
   [/おもらし|おねしょ/, m => ({ k: 'accident', w: 3 })],
   [/せいかくが「.+」から「(.+)」に/, m => ({ k: 'per', to: m[1], w: 2 })],
   [/やきもち/, m => ({ k: 'jealous', w: 3 })],
+  [/(.+)に あいたがっていた/, m => ({ k: 'miss', who: m[1], w: 3 })],
+  [/ひさしぶりに (.+)に あえた/, m => ({ k: 'reunion', who: m[1], w: 5 })],
 ];
 const myName = () => G.state.name || 'イカッチ';
 
@@ -77,6 +80,8 @@ function sentence(ev, v) {
     case 'accident': return `…もらしちゃった。${b()}`;
     case 'per': return `さいきん ${v.I}、すこし かわったかも しれない。`;
     case 'jealous': return `ほかの こと あそんだら、すねられちゃった。`;
+    case 'miss': return `${ev.who}に あいたいな。いま なに してるかな。`;
+    case 'reunion': return `ひさしぶりに ${ev.who}に あえた！ ${g()}`;
   }
   return '';
 }

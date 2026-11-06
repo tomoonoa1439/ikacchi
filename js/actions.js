@@ -9,6 +9,7 @@ import { relOf, relStage, addRelPt } from './social.js';
 import { nudge, traitMul, like, favorite, disliked, inheritTraits, perLabel, remember } from './traits.js';
 import { lineageFor, meAsParent, lineageForCard, MAX_EGGS } from './family.js';
 import { stat } from './story.js';
+import { epi, reunion, markSeen } from './memory.js';
 
 const say = t => bus.emit('say', t);
 const fx = (c, d) => bus.emit('fx', c, d);
@@ -333,7 +334,12 @@ const A = {
     const S = G.state;
     if (card.pid === S.player.id) { say('それは じぶんの カードだよ'); return false; }
     const old = S.friends.find(f => f.pid === card.pid);
-    const entry = { ...card, addedAt: old ? old.addedAt : Date.now(), lastVisit: Date.now() };
+    const entry = { ...card, addedAt: old ? old.addedAt : Date.now(), lastVisit: old ? old.lastVisit : 0 };
+    if (old) {   // まえに あった ときから かわった ところ
+      const r = relOf(card.pid);
+      if (card.stage !== old.stage && card.stage !== 'egg') r.grew = card.stage;
+      else if (card.hat && card.hat !== old.hat) r.grew = 'hat';
+    }
     S.friends = [entry, ...S.friends.filter(f => f.pid !== card.pid)].slice(0, CONFIG.maxFriends);
     if (!old) { log(`${card.owner || 'だれか'}の ${card.name} と ともだちに なった`); nudge({ kouki: 1 }); remember(`${card.name}と であった`, 1); }
     return true;
@@ -343,8 +349,11 @@ const A = {
     const S = G.state, f = S.friends.find(x => x.pid === pid);
     if (!f) return;
     G.visitor = { card: f, pos: 72 };
+    const r = relOf(pid), prev = r.seen || f.lastVisit || null;   // はじめてなら null
     f.lastVisit = Date.now();
-    const r = relOf(pid);
+    const lines = reunion(f, r, prev);
+    markSeen(pid);
+    if (prev && Date.now() - prev > 3 * 864e5 && !r.kenka) log(`ひさしぶりに ${f.name}に あえた`);
     // やきもち：なかよし いじょうの こは、きょう ほかの こと あそんでいると すねる
     const playedOther = Object.entries(S.friendPlay).some(([k, d]) => k !== pid && d === dayKey());
     if (!r.kenka && ['nakayoshi', 'shinyu', 'koibito'].includes(relStage(r)) && playedOther && S.friendPlay[pid] !== dayKey() && Math.random() < .4) {
@@ -355,6 +364,7 @@ const A = {
     }
     if (r.kenka) say(`${f.name}が きたけど、まだ ちょっと ふきげん…`);
     else say(r.lover ? `${f.name}が あいに きてくれた！` : `${f.name} が あそびに きた！`);
+    lines.forEach((t, i) => setTimeout(() => { if (G.visitor && G.visitor.card.pid === pid) say(t); }, 2600 * (i + 1)));
     beep(780, .1);
   },
   sendHome() { if (G.visitor) say(`${G.visitor.card.name} は かえっていった`); G.visitor = null; },
@@ -377,7 +387,7 @@ const A = {
     S.redeemed = [gift.gid, ...S.redeemed].slice(0, 200);
     if (gift.kind === 'food') S.inv.food[gift.id] = (S.inv.food[gift.id] || 0) + 1;
     else S.inv.finds[gift.id] = (S.inv.finds[gift.id] || 0) + 1;
-    addBond(2);
+    addBond(2); epi(gift.from, 'gift', item.name);
     log(`${gift.fromName || 'ともだち'}から「${item.name}」が とどいた`);
     fx('gift'); beep(990, .12);
     return { ok: true, item };
