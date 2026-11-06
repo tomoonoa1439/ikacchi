@@ -322,3 +322,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 @keyframes qte{from{width:100%}to{width:0}}
 .check .tags{border:none;background:none;padding:0;justify-content:flex-start}
 .squid-wrap .tag svg{width:10px!important;height:10px!important}
+/* どうぐ */
+.boost{display:none;background:#fff6d6;border-color:#f6c85f}
+.boost.on{display:flex;align-items:center;gap:3px}
+.btncol{display:flex;flex-direction:column;gap:5px;align-items:stretch}
+.btn.blue{background:var(--blue);box-shadow:0 3px 0 #4a9fbd}

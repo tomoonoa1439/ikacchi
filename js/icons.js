@@ -93,6 +93,8 @@ const P = {
   card: `<rect x="3" y="7" width="26" height="18" rx="3" fill="#fff" ${s}/><circle cx="10" cy="14" r="3" fill="#ff9fb3"/><path d="M6.5 21a3.5 3.5 0 0 1 7 0M17 12h8M17 17h6" ${s} fill="none"/>`,
   pause: `<rect x="7" y="5" width="6.5" height="22" rx="2.5" fill="#6cc3e0" ${s}/><rect x="18.5" y="5" width="6.5" height="22" rx="2.5" fill="#6cc3e0" ${s}/>`,
   play: `<path d="M9 5l18 11-18 11z" fill="#7cc68d" ${s}/>`,
+  sandglass: `<path d="M8 3h16M8 29h16" stroke="${O}" stroke-width="3" stroke-linecap="round"/><path d="M10 4c0 7 5 9 5 12s-5 5-5 12h12c0-7-5-9-5-12s5-5 5-12z" fill="#e3f5fb" ${s}/>
+    <path d="M12.5 8h7c-.5 3-3.5 5-3.5 6.5S12.5 11 12.5 8zM11.5 27c.5-4 3-5.5 4.5-6 1.5.5 4 2 4.5 6z" fill="#f6c85f"/><path d="M16 15v6" stroke="#f6c85f" stroke-width="1.4"/>`,
   // ---- ハプニング ----
   tako: `<path d="M8 20c-3 3-5 6-3 8M12 21c-1 3-1 6-3 8M16 21v8M20 21c1 3 1 6 3 8M24 20c3 3 5 6 3 8" stroke="#e8657a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
     <path d="M5 16c0-8 5-13 11-13s11 5 11 13c0 4-5 6-11 6S5 20 5 16z" fill="#f47c8e" ${s}/>

@@ -36,7 +36,9 @@ setInterval(() => {
   const S = G.state;
   tick++;
   if (S.paused) { render(); return; }   // ストップちゅうは なにも すすまない
-  step((1 / 60) * G.speed, true);
+  // すなどけいを つかっている あいだだけ はやく すすむ（G.speed は かいはつ用）
+  const boost = S.boostUntil > Date.now() ? 10 : 1;
+  step((1 / 60) * G.speed * boost, true);
   if (!G.busy && S.stage !== 'egg' && !S.sleeping && tick % 4 === 0 && Math.random() < .6) S.pos = Math.round(G.visitor ? rand(30, 44) : rand(36, 66));
   if (G.visitor && tick % 5 === 0) {
     const r = relOf(G.visitor.card.pid);

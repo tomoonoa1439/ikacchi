@@ -2,7 +2,7 @@
 //  プレイヤーの そうさ は すべて dispatch(type, payload) を通る
 //  → オンライン化するときは この action を サーバーへ送れば OK
 // =========================================================
-import { CONFIG, FOODS, HATS, DECOR, FINDS } from './config.js';
+import { CONFIG, FOODS, HATS, DECOR, FINDS, TOOLS } from './config.js';
 import { G, bus, clamp, rand, pick, dayKey, isNight, newState, migrate } from './state.js';
 import { care, addBond, log, weatherToday, stageName, baseWeight, bondLevel, wake } from './sim.js';
 import { relOf, relStage, addRelPt } from './social.js';
@@ -18,7 +18,7 @@ export function dispatch(type, p = {}) {
   const fn = A[type];
   if (!fn) { console.warn('unknown action', type); return; }
   if (G.state.paused && !['resume', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave'].includes(type)) { say('ストップちゅうだよ。さいかいしてね'); return; }
-  if (G.busy && !['cleanOne', 'buy', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave', 'travel'].includes(type)) return;
+  if (G.busy && !['cleanOne', 'buy', 'useTool', 'equipHat', 'toggleDecor', 'sell', 'setPlayerName', 'importSave', 'travel'].includes(type)) return;
   const r = fn(p);
   if (TOUCH.includes(type) && G.state.stage !== 'egg') G.state.lastTouch = G.state.ageMin;   // かまってもらった じかん
   bus.emit('changed', type);
@@ -30,6 +30,8 @@ const A = {
   pause() {
     const S = G.state;
     S.paused = true; S.pausedAt = Date.now();
+    // すなどけいの のこり じかんも いっしょに とめる
+    if (S.boostUntil > Date.now()) { S.boostLeft = S.boostUntil - Date.now(); S.boostUntil = 0; }
     if (G.visitor) G.visitor = null;
     log('ストップした（じかんが とまった）');
   },
@@ -38,6 +40,7 @@ const A = {
     if (!S.paused) return;
     const h = (Date.now() - S.pausedAt) / 3600000;
     S.paused = false; S.lastSaved = Date.now();   // とまっていた あいだの じかんは すすめない
+    if (S.boostLeft > 0) { S.boostUntil = Date.now() + S.boostLeft; S.boostLeft = 0; }
     log(`さいかいした（${h < 1 ? Math.max(1, Math.round(h * 60)) + 'ふん' : h.toFixed(1) + 'じかん'} とまっていた）`);
     say('おかえり！ まってたよ'); fx('sparkle');
   },
@@ -116,17 +119,38 @@ const A = {
       say('なんで おこるの…？'); fx('drop'); beep(240, .15);
     }
   },
-  travel() {
+  // ---------- どうぐ ----------
+  useTool({ id }) {
+    const S = G.state, tool = TOOLS.find(t => t.id === id);
+    if (!(S.inv.tools[id] > 0)) { say('もってないよ'); return false; }
+    if (id === 'sandglass') {
+      S.inv.tools[id]--;
+      S.boostUntil = Math.max(Date.now(), S.boostUntil || 0) + tool.boostMin * 60000;
+      log('はやおくりの すなどけいを つかった');
+      say('さらさら… じかんが はやく すすみはじめた！'); fx('sparkle'); beep(990, .1);
+      return true;
+    }
+    if (id === 'newegg') {
+      S.inv.tools[id]--;
+      const nm = S.stage === 'egg' ? null : (S.name || 'イカッチ');
+      A.travel({ release: true });
+      log(nm ? `${nm}を うみに かえして、あたらしい たまごを むかえた` : 'あたらしい たまごに とりかえた');
+      say('あたらしい たまごが とどいた！'); fx('egg');
+      return true;
+    }
+  },
+  travel({ release = false } = {}) {
     const S = G.state;
-    S.album.unshift({ gen: S.gen, name: S.name || 'イカッチ', sp: S.sp, form: S.form, hat: S.inv.hat, days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now() });
-    const keep = { seenSp: S.seenSp, seenPer: S.seenPer, seenForm: S.seenForm, player: S.player, rel: {}, shells: S.shells + 20, inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
+    if (S.stage !== 'egg') S.album.unshift({ gen: S.gen, name: S.name || 'イカッチ', sp: S.sp, form: S.form, hat: S.inv.hat, days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now(), release });
+    const keep = { seenSp: S.seenSp, seenPer: S.seenPer, seenForm: S.seenForm, player: S.player, rel: {}, shells: S.shells + (release ? 0 : 20), inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
                    album: S.album.slice(0, 30), log: S.log, gen: S.gen + 1, rainbowDay: S.rainbowDay, lastDay: S.lastDay };
     const parent = { name: S.name || 'イカッチ', per: S.per };
     G.state = Object.assign(newState(), keep);
     G.state.tr = inheritTraits(S.tr); G.state.per = perLabel(G.state.tr, null, G.state.gene);
     G.state.parent = parent;
     G.visitor = null;
-    log(`${keep.gen}だいめの たまごが やってきた`);
+    if (S.stage === 'egg') { G.state.gen = S.gen; G.state.parent = S.parent || null; G.state.tr = newState().tr; G.state.per = perLabel(G.state.tr, null, G.state.gene); }
+    else log(`${keep.gen}だいめの たまごが やってきた`);
   },
   importSave({ data }) {
     G.state = migrate(data); G.state.lastSaved = Date.now(); G.visitor = null;
@@ -222,13 +246,14 @@ const A = {
   // ---------- ショップ / もちもの ----------
   buy({ kind, id }) {
     const S = G.state;
-    const list = { food: FOODS, hat: HATS, decor: DECOR }[kind];
+    const list = { food: FOODS, hat: HATS, decor: DECOR, tool: TOOLS }[kind];
     const it = list.find(x => x.id === id);
     if (S.shells < it.price) { say('かいがらが たりないよ…'); beep(260, .1); return false; }
     if (kind === 'hat' && S.inv.hats.includes(id)) return false;
     if (kind === 'decor' && S.inv.decor.includes(id)) return false;
     S.shells -= it.price;
     if (kind === 'food') S.inv.food[id] = (S.inv.food[id] || 0) + 1;
+    if (kind === 'tool') S.inv.tools[id] = (S.inv.tools[id] || 0) + 1;
     if (kind === 'hat') { S.inv.hats.push(id); S.inv.hat = id; }
     if (kind === 'decor') { S.inv.decor.push(id); S.inv.placed.push(id); }
     if (kind !== 'food') nudge({ kouki: .8 });

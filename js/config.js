@@ -37,6 +37,13 @@ export const FOODS = [
   { id: 'cake',     ic: 'cake', name: 'しんじゅケーキ', desc: 'とくべつな ごちそう', price: 12, hunger: 30, bladder: 12, happy: 40, weight: 3 },
 ];
 
+// ---- どうぐ（つかうと なくなる）----
+//   はやさや さいしょからは、どうぐを つかった ときだけ できる
+export const TOOLS = [
+  { id: 'sandglass', ic: 'sandglass', name: 'はやおくりの すなどけい', desc: '3ぷんかん じかんが 10ばいの はやさで すすむ', price: 30, boostMin: 3, mult: 10 },
+  { id: 'newegg',    ic: 'egg',       name: 'あたらしい たまご',       desc: 'いまの イカを うみに かえして、あたらしい たまごを むかえる', price: 80 },
+];
+
 // ---- きせかえ（art.js に えが あります）----
 export const HATS = [
   { id: 'hachimaki', ic: 'hachimaki', name: 'はちまき',       price: 10 },

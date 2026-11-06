@@ -1,7 +1,7 @@
 // =========================================================
 //  画面（描画・モーダル・ミニゲーム）
 // =========================================================
-import { CONFIG, FOODS, HATS, DECOR, FINDS, FORMS, SPECIES } from './config.js';
+import { CONFIG, FOODS, HATS, DECOR, FINDS, FORMS, SPECIES, TOOLS } from './config.js';
 import { G, bus, rand, pick, dayKey, isNight, timeOfDay, TOD_LABEL, save, newState } from './state.js';
 import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, lifespan, speciesOf } from './sim.js';
 import { dispatch, makeCard } from './actions.js';
@@ -202,14 +202,38 @@ function openShop(tab = shopTab) {
     ${own ? `<button class="btn sm ${on ? 'gray' : ''}" data-a="decor" data-id="${d.id}">${on ? 'しまう' : 'おく'}</button>`
           : `<button class="btn sm" data-a="buy" data-k="decor" data-id="${d.id}" ${S.shells < d.price ? 'disabled' : ''}>${ic('shell', 20)}${d.price}</button>`}</div>`;
   }).join('');
+  if (tab === 'tool') body = TOOLS.map(t => {
+    const n = S.inv.tools[t.id] || 0;
+    return `<div class="choice"><span class="ic">${ic(t.ic, 28)}</span><span class="grow">${t.name}<small>${t.desc}・もってる ${n}</small></span>
+    <span class="btncol"><button class="btn sm" data-a="buy" data-k="tool" data-id="${t.id}" ${S.shells < t.price ? 'disabled' : ''}>${ic('shell', 20)}${t.price}</button>
+    ${n ? `<button class="btn sm blue" data-a="use" data-id="${t.id}">つかう</button>` : ''}</span></div>`;
+  }).join('');
   showModal(`<h3>${ic('bag', 20)} うみのショップ</h3><p>もってる かいがら：${ic('shell', 20)} ${S.shells}</p>
-    ${tabs([['food', 'ごはん'], ['hat', 'きせかえ'], ['decor', 'もようがえ']], tab)}
+    ${tabs([['food', 'ごはん'], ['hat', 'きせかえ'], ['decor', 'もようがえ'], ['tool', 'どうぐ']], tab)}
     <div class="choices scroll">${body}</div>${closeBtn()}`, {
     tab: el => openShop(el.dataset.t),
     buy: el => { dispatch('buy', { kind: el.dataset.k, id: el.dataset.id }); openShop(); },
     hat: el => { dispatch('equipHat', { id: el.dataset.id }); openShop(); },
     decor: el => { dispatch('toggleDecor', { id: el.dataset.id }); openShop(); },
+    use: el => useToolUI(el.dataset.id),
   });
+}
+
+function useToolUI(id) {
+  const S = G.state;
+  if (S.paused) { say('ストップちゅうは つかえないよ'); return; }
+  if (id === 'sandglass') { closeModal(); dispatch('useTool', { id }); return; }
+  if (id === 'newegg') {
+    const nm = esc(S.name || 'イカッチ');
+    showModal(`<h3>${ic('egg', 22)} あたらしい たまごを むかえる？</h3>
+      ${S.stage === 'egg' ? '<p>いまの たまごと とりかえるよ</p>' : `<div class="zsq hero">${squidSVG(S.stage, 'sad', S.form, S.inv.hat, S.sp)}</div>
+      <p>${nm}を うみに かえして、あたらしい たまごを むかえます。<br><b>${nm}には もう あえなく なるよ。</b></p>
+      <p class="note">かいがら・もちもの・ともだち・ずかんは そのまま。${nm}は アルバムに のこるよ</p>`}
+      <div class="row"><button class="btn gray" data-a="back">やめる</button><button class="btn" data-a="go">${ic('egg', 16)} むかえる</button></div>`, {
+      back: () => openShop('tool'),
+      go: () => { closeModal(); dispatch('useTool', { id }); render(); save(); },
+    }, true);
+  }
 }
 
 /* ---------------- ずかん ---------------- */
@@ -252,7 +276,7 @@ function openZukan(tab = zukanTab) {
   if (tab === 'album') {
     body = S.album.length ? `<div class="choices">${S.album.map(a => { const f = FORMS[a.form] || FORMS.surume, sp = speciesOf(a.sp); return `
       <div class="choice"><span class="asq">${squidSVG('adult', 'happy', a.form, a.hat, a.sp || 'momo')}</span>
-      <span class="grow">${a.gen}だいめ ${esc(a.name)}<small>${(f.prefix ? f.prefix + ' ' : '') + sp.name}・${a.days}にち いきた・なかよしLv.${a.bond}・ミス${a.mistakes}</small></span></div>`; }).join('')}</div>`
+      <span class="grow">${a.gen}だいめ ${esc(a.name)}<small>${(f.prefix ? f.prefix + ' ' : '') + sp.name}・${a.release ? 'うみに かえした・' : ''}${a.days}にち いっしょに いた・なかよしLv.${a.bond}・ミス${a.mistakes}</small></span></div>`; }).join('')}</div>`
       : '<p>まだ たびだった イカは いないよ<br>おとなに なって しばらくすると、ひろい うみへ たびだつよ</p>';
   }
   showModal(`<h3>${ic('book', 20)} ずかん</h3>${tabs([['finds', 'もの'], ['forms', 'すがた'], ['per', 'せいかく'], ['event', 'できごと'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
@@ -595,10 +619,6 @@ export function askName() {
   $('nameInput').onkeydown = e => { if (e.key === 'Enter') ok(); };
   setTimeout(() => { try { $('nameInput').focus(); } catch (e) {} }, 50);
 }
-$('resetBtn').onclick = () => showModal(`<h3>${ic('egg', 20)} さいしょから？</h3><p>いまの イカとは おわかれに なります<br>（かいがら・もちもの・ともだちも きえます）</p>
-  <div class="row"><button class="btn gray" data-a="close">やめる</button><button class="btn" data-a="reset">あたらしい たまご</button></div>`, {
-  reset: () => { const keep = G.state.player; G.state = newState(); G.state.player = keep; G.visitor = null; closeModal(); say('あたらしい たまごが とどいた！'); render(); save(); },
-});
 $('moveBtn').onclick = () => openMove();
 $('stopBtn').onclick = () => {
   if (G.state.paused) return dispatch('resume');
@@ -616,7 +636,6 @@ $('stopBtn').onclick = () => {
   });
 };
 $('resumeBtn').onclick = () => dispatch('resume');
-$('speedBtn').onclick = () => { G.speed = G.speed === 1 ? 10 : G.speed === 10 ? 60 : 1; $('speedBtn').innerHTML = `${ic('fast', 12)} はやさ ×${G.speed}`; };
 $('soundBtn').onclick = () => { G.sound = !G.sound; $('soundBtn').innerHTML = G.sound ? `${ic('sound', 12)} おと ON` : `${ic('mute', 12)} おと OFF`; };
 
 fillIcons();
@@ -687,6 +706,10 @@ export function render() {
   $('weather').innerHTML = ic((w.id === 'sunny' && tod === 'night') ? 'moon' : w.ic, 16);
   $('weather').title = w.name;
   $('shells').textContent = S.shells;
+  const left = (S.boostUntil || 0) - Date.now(), bp = $('boost');
+  if (left > 0 && !S.paused) { const sec = Math.ceil(left / 1000); bp.innerHTML = `${ic('sandglass', 13)} ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; bp.classList.add('on'); }
+  else if (S.paused && S.boostLeft > 0) { bp.innerHTML = `${ic('sandglass', 13)} とまってる`; bp.classList.add('on'); }
+  else bp.classList.remove('on');
   $('scene').className = `scene t-${tod} w-${w.id}`;
 
   // decor

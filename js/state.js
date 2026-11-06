@@ -69,7 +69,8 @@ export function newState() {
     gen: 1, album: [],
     // ---- もちもの ----
     shells: 0,
-    inv: { food: { shrimp: 1, snack: 1, cake: 0 }, hats: [], hat: null, decor: [], placed: [], finds: {} },
+    inv: { food: { shrimp: 1, snack: 1, cake: 0 }, tools: { sandglass: 0, newegg: 0 }, hats: [], hat: null, decor: [], placed: [], finds: {} },
+    boostUntil: 0, boostLeft: 0,
     // ---- きろく ----
     log: [], lastSaved: Date.now(), lastDay: dayKey(), rainbowDay: '',
     // ---- ともだち ----
@@ -89,6 +90,7 @@ export function migrate(s) {
   if (s.v < 3 && out.stage !== 'egg') { out.weight = CONFIG.weightBase[out.stage] || 5; if (out.sleeping) out.lightsOff = true; }
   out.inv = { ...base.inv, ...(s.inv || {}) };
   out.inv.food = { ...base.inv.food, ...((s.inv || {}).food || {}) };
+  out.inv.tools = { ...base.inv.tools, ...((s.inv || {}).tools || {}) };
   if (out.stage === 'adult' && !out.form) out.form = 'surume';
   if (!out.tr) out.tr = s.per ? presetTraits(s.per) : randomTraits();
   out.tr = fillTraits(out.tr);
