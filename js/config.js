@@ -79,17 +79,17 @@ export const FINDS = [
 //   body: からだ  edge: ふちどり  line: もようの いろ  ink: かおの せんの いろ  fin: ひれの かたち
 export const SPECIES = {
   momo:   { name: 'ももイカ', mix: 'もも',     w: 25, body: '#ffc6d2', edge: '#e98aa0', line: '#f3a3b6', cheek: '#ff7f9a', ink: '#4a3a3a', fin: 'round',
-            desc: 'ピンクで あまえんぼう。いちばん よく みかける イカ。' },
+            desc: 'ピンクで あまえんぼう。あたまの ももが トレードマーク。' },
   neon:   { name: 'ネオンイカ', mix: 'ネオン',   w: 20, body: '#2e3270', edge: '#5ff3ff', line: '#ff6ff0', line2: '#5ff3ff', cheek: '#ff6ff0', ink: '#e8f7ff', fin: 'sharp', glow: '#5ff3ff',
-            desc: 'よるの うみで ピカピカ ひかる。おしゃれが だいすき。' },
+            desc: 'よるの うみで ピカピカ ひかる。ヘッドホンで おんがくを きくのが すき。' },
   sabaku: { name: 'さばくイカ', mix: 'さばく',   w: 20, body: '#f5d59e', edge: '#c99a5c', line: '#e0ad66', cheek: '#ff9a6a', ink: '#5b3e24', fin: 'wide',
-            desc: 'すなの うみ うまれ。あたまに サボテンが はえている。' },
+            desc: 'すなの うみ うまれ。たんけんぼうしと バンダナで ぼうけんに でかける。' },
   yuki:   { name: 'ゆきイカ', mix: 'ゆき',     w: 20, body: '#f6fbff', edge: '#9cc9e6', line: '#cfe8f7', cheek: '#9fd0ff', ink: '#3d4f66', fin: 'fluffy',
-            desc: 'つめたい うみの イカ。ふわふわの ゆきぼうしが じまん。' },
-  hoshi:  { name: 'ほしぞらイカ', mix: 'ほしぞら', w: 12, body: '#7d70d8', edge: '#4e46a3', line: '#ffe38a', cheek: '#ff9fd0', ink: '#2a2350', fin: 'pointy',
-            desc: 'からだに ほしが ひかる。ゆめを みるのが とくい。' },
+            desc: 'つめたい うみの イカ。ゆきの けっしょうと しましまマフラーが じまん。' },
+  hoshi:  { name: 'ほしぞらイカ', mix: 'ほしぞら', w: 12, body: '#4b4cb8', edge: '#8f7bff', line: '#ffe38a', cheek: '#ff9fd0', ink: '#f4f0ff', fin: 'pointy', tent: '#9fb6ff',
+            desc: 'よぞらの からだに ほしが ひかる。ゆめを みるのが とくい。' },
   niji:   { name: 'にじイカ', mix: 'にじ',     w: 3, rare: true, body: '#fff3f8', edge: '#c79ad9', line: '#ff9a9a', cheek: '#ff9fb3', ink: '#4a3a3a', fin: 'round',
-            desc: 'めったに うまれない まぼろしの イカ。' },
+            desc: 'めったに うまれない まぼろしの イカ。ちいさな おうかんを のせている。' },
 };
 
 // ---- せいかくの タイプ（traits.js：8つの パラメータが p に いちばん ちかい タイプに なる）----

@@ -21,6 +21,9 @@ if (w.id === 'rainbow' && G.state.rainbowDay !== dayKey()) { G.state.rainbowDay 
 
 decorate();
 render();
+// タイトル：タップ（または 4びょう）で とじる
+{ const sp = document.getElementById('splash'); if (sp && (location.hash.length > 3 || location.search.includes('ns'))) sp.remove();
+  else if (sp) { const go = () => { sp.classList.add('hide'); setTimeout(() => sp.remove(), 700); }; sp.addEventListener('click', go, { once: true }); setTimeout(go, 4000); } }
 save();
 
 setTimeout(() => {

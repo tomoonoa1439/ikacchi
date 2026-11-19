@@ -68,15 +68,10 @@ function pattern(spId, P, stage, hat) {
     case 'sabaku':
       return `<path d="M64 82 Q82 72 100 82 T136 82" stroke="${P.line}" stroke-width="4" fill="none" stroke-linecap="round"/>
         <path d="M74 58 Q90 50 106 58 T126 56" stroke="${P.line}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-        <circle cx="80" cy="40" r="3" fill="${P.line}"/><circle cx="120" cy="46" r="2.5" fill="${P.line}"/>
-        ${hat ? '' : `<g class="sprout"><path d="M100 10 V-12" stroke="#4f9a5a" stroke-width="11" stroke-linecap="round"/><path d="M100 10 V-12" stroke="#7cc68d" stroke-width="7" stroke-linecap="round"/>
-          <path d="M100 -2 H90 V-10" stroke="#4f9a5a" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M100 -2 H90 V-10" stroke="#7cc68d" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="100" cy="-15" r="4" fill="#ff8fa8" stroke="#e2667f" stroke-width="2"/></g>`}`;
+        <circle cx="80" cy="40" r="3" fill="${P.line}"/><circle cx="120" cy="46" r="2.5" fill="${P.line}"/>`;
     case 'yuki':
       return `<g stroke="${P.edge}" stroke-width="2.5" stroke-linecap="round" opacity=".8"><path d="M100 72 v18 M92 76 l16 10 M108 76 l-16 10"/></g>
-        <circle cx="74" cy="92" r="3" fill="#fff" stroke="${P.line}" stroke-width="1.5"/><circle cx="128" cy="88" r="2.5" fill="#fff" stroke="${P.line}" stroke-width="1.5"/>
-        ${hat ? '' : `<path d="M74 34 Q78 20 88 26 Q94 12 104 22 Q112 12 118 26 Q128 22 128 36 Q100 44 74 34 Z" fill="#fff" stroke="${P.edge}" stroke-width="3" stroke-linejoin="round"/>
-          <circle cx="100" cy="16" r="6" fill="#fff" stroke="${P.edge}" stroke-width="3"/>`}`;
+        <circle cx="74" cy="92" r="3" fill="#fff" stroke="${P.line}" stroke-width="1.5"/><circle cx="128" cy="88" r="2.5" fill="#fff" stroke="${P.line}" stroke-width="1.5"/>`;
     case 'hoshi':
       return `<path d="${starPath(80, 50, 7, 3)}" fill="${P.line}"/><path d="${starPath(122, 66, 5, 2.2)}" fill="${P.line}"/>
         <path d="${starPath(72, 84, 4, 1.8)}" fill="${P.line}"/><path d="${starPath(130, 92, 3.5, 1.5)}" fill="${P.line}"/>
@@ -89,6 +84,65 @@ function pattern(spId, P, stage, hat) {
     default:
       return stage === 'adult' ? `<circle cx="88" cy="46" r="5" fill="${P.edge}" opacity=".45"/><circle cx="112" cy="60" r="4" fill="${P.edge}" opacity=".45"/><circle cx="96" cy="78" r="3" fill="${P.edge}" opacity=".45"/>` : '';
   }
+}
+
+
+// ---- しゅるいごとの トレードマーク（あたま：ぼうしを かぶると かくれる ／ くび：いつも）----
+function headMark(spId, hat) {
+  if (hat) return '';
+  switch (spId) {
+    case 'momo':   // もも
+      return `<g transform="translate(122 30) rotate(18)">
+        <path d="M0 -14 Q14 -16 14 0 Q14 14 0 14 Q-14 14 -14 0 Q-14 -16 0 -14 Z" fill="#ffb3c4" stroke="#e98aa0" stroke-width="3"/>
+        <path d="M0 -12 Q-4 0 0 12" stroke="#ef9bb0" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <ellipse cx="-4" cy="-6" rx="4" ry="2.5" fill="#fff" opacity=".7"/>
+        <path d="M2 -14 Q10 -26 22 -20 Q14 -10 2 -14 Z" fill="#7cc68d" stroke="#4f9a5a" stroke-width="2.5" stroke-linejoin="round"/></g>`;
+    case 'neon':   // ヘッドホン
+      return `<path d="M58 96 C52 18 148 18 142 96" stroke="#3a2f7a" stroke-width="11" fill="none" stroke-linecap="round"/>
+        <path d="M58 96 C52 18 148 18 142 96" stroke="#ff7af0" stroke-width="5" fill="none" stroke-linecap="round" class="neonline"/>
+        <rect x="44" y="80" width="22" height="34" rx="10" fill="#262a66" stroke="#5ff3ff" stroke-width="4" class="neonline"/>
+        <rect x="134" y="80" width="22" height="34" rx="10" fill="#262a66" stroke="#5ff3ff" stroke-width="4" class="neonline"/>
+        <circle cx="55" cy="97" r="5" fill="#5ff3ff" class="glowdot"/><circle cx="145" cy="97" r="5" fill="#5ff3ff" class="glowdot"/>`;
+    case 'sabaku': // たんけんぼうし ＋ ゴーグル
+      return `<ellipse cx="100" cy="38" rx="52" ry="11" fill="#c08850" stroke="#8a5a2e" stroke-width="3"/>
+        <path d="M70 37 Q71 6 100 3 Q129 6 130 37 Z" fill="#d9a66c" stroke="#8a5a2e" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M71 27 Q100 31 129 27 L130 35 Q100 39 70 35 Z" fill="#7a4a24"/>
+        <path d="M96 28 h8" stroke="#5a3a1e" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="86" cy="26" r="9" fill="#bfe8f4" stroke="#5a3a1e" stroke-width="3.5"/><circle cx="114" cy="26" r="9" fill="#bfe8f4" stroke="#5a3a1e" stroke-width="3.5"/>
+        <path d="M81 22 l5 -3 M109 22 l5 -3" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>`;
+    case 'yuki':   // ゆきの けっしょう
+      return `<g transform="translate(116 44)" stroke="#6fb0e6" stroke-width="3.5" stroke-linecap="round">
+        <path d="M0 -13 V13 M-11 -6.5 L11 6.5 M-11 6.5 L11 -6.5"/>
+        <path d="M-4 -10 L0 -6 L4 -10 M-4 10 L0 6 L4 10 M-11 -1 L-7 -3.5 M11 1 L7 3.5 M-11 1 L-7 3.5 M11 -1 L7 -3.5" stroke-width="2.2"/></g>`;
+    case 'hoshi':  // ほし ＋ わっか
+      return `<ellipse cx="100" cy="70" rx="64" ry="13" transform="rotate(-10 100 70)" fill="none" stroke="#c9a2ff" stroke-width="3" opacity=".8"/>
+        <path d="${starPath(84, 22, 13, 6)}" fill="#ffd84a" stroke="#e0a800" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="80" cy="18" r="2.5" fill="#fff" opacity=".8"/>`;
+    case 'niji':   // ちいさな おうかん
+      return `<g transform="translate(118 18) rotate(14) scale(.62) translate(-100 -15)">
+        <path d="M76 30 L78 6 L90 20 L100 0 L110 20 L122 6 L124 30 Z" fill="#ffd54a" stroke="#d4a017" stroke-width="4" stroke-linejoin="round"/>
+        <circle cx="100" cy="22" r="4.5" fill="#ff6f9a"/><circle cx="85" cy="25" r="3.5" fill="#6cc3e0"/><circle cx="115" cy="25" r="3.5" fill="#6cc3e0"/></g>`;
+  }
+  return '';
+}
+function neckMark(spId) {
+  switch (spId) {
+    case 'sabaku': // バンダナ
+      return `<path d="M64 136 Q100 150 136 136 L134 146 Q118 152 108 152 L100 166 L92 152 Q80 152 66 146 Z" fill="#e8813a" stroke="#b85a1e" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="132" cy="141" r="5" fill="#e8813a" stroke="#b85a1e" stroke-width="2.5"/>
+        <path d="M134 144 l10 9 M134 144 l12 2" stroke="#b85a1e" stroke-width="5" stroke-linecap="round"/><path d="M134 144 l10 9 M134 144 l12 2" stroke="#e8813a" stroke-width="2.5" stroke-linecap="round"/>`;
+    case 'yuki':   // しましまマフラー
+      return `<path d="M62 134 Q100 150 138 134 L140 147 Q100 163 60 147 Z" fill="#dff0fb" stroke="#6fb0e6" stroke-width="3" stroke-linejoin="round"/>
+        <g stroke="#8cc4ee" stroke-width="5"><path d="M76 141 v12 M92 145 v13 M108 145 v13 M124 141 v12"/></g>
+        <path d="M118 148 L114 178 L128 179 L130 148 Z" fill="#dff0fb" stroke="#6fb0e6" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M116 160 h13 M115 170 h13" stroke="#8cc4ee" stroke-width="4"/>`;
+  }
+  return '';
+}
+function sparkles(spId) {
+  if (spId !== 'hoshi') return '';
+  return [[78, 40, 2], [126, 52, 2.4], [90, 86, 1.8], [114, 96, 2], [70, 64, 1.6], [134, 82, 1.6]]
+    .map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity=".9" class="glowdot"/>`).join('');
 }
 
 // ---- いろの へんか（しきそほう）：CSS の skin-○○ で みえかたが かわる ----
@@ -114,10 +168,10 @@ export function squidSVG(stage, mood, form, hat, spId = 'momo', sp2 = null) {
 
   // あし
   const tents = [62, 74, 86, 98, 110, 122, 134].map((x, i) => {
-    const len = (i === 1 || i === 5) ? 82 : 58, sway = (i - 3) * 5;
+    const len = (i === 1 || i === 5) ? 66 : 46, sway = (i - 3) * 6;
     const tsp = mix ? sp2 : spId;
-    const col = tsp === 'niji' ? RAINBOW[i] : tsp === 'neon' && mood !== 'sick' ? (i % 2 ? P.line : P.line2) : (mix ? P.edge2 : P.edge);
-    return `<path class="tent" style="animation-delay:${-i * .23}s" d="M${x} 140 Q${x + sway - 6} ${140 + len * .55} ${x + sway} ${140 + len}" stroke="${col}" stroke-width="10" fill="none" stroke-linecap="round"/>`;
+    const col = tsp === 'niji' ? RAINBOW[i] : SPECIES[tsp]?.tent && mood !== 'sick' ? SPECIES[tsp].tent : tsp === 'neon' && mood !== 'sick' ? (i % 2 ? P.line : P.line2) : (mix ? P.edge2 : P.edge);
+    return `<path class="tent" style="animation-delay:${-i * .23}s" d="M${x} 140 Q${x + sway - 6} ${140 + len * .55} ${x + sway} ${140 + len}" stroke="${col}" stroke-width="13" fill="none" stroke-linecap="round"/>`;
   }).join('');
 
   // ひれ
@@ -166,6 +220,9 @@ export function squidSVG(stage, mood, form, hat, spId = 'momo', sp2 = null) {
     <ellipse cx="68" cy="124" rx="9" ry="5" fill="${P.cheek}" opacity=".5"/>
     <ellipse cx="132" cy="124" rx="9" ry="5" fill="${P.cheek}" opacity=".5"/>
     ${eyes}${mouth}
+    ${mood === 'sick' ? '' : sparkles(mix ? sp2 : spId)}
+    ${neckMark(mix ? sp2 : spId)}
+    ${headMark(spId, hat)}
     ${hatSVG(hat)}
   </svg>`;
 }
