@@ -837,6 +837,7 @@ export function render() {
   else if (S.paused && S.boostLeft > 0) { bp.innerHTML = `${ic('sandglass', 13)} とまってる`; bp.classList.add('on'); }
   else bp.classList.remove('on');
   $('scene').className = `scene t-${tod} w-${w.id}`;
+  ambient(S.sp || 'momo');
 
   // decor
   $('decor').innerHTML = DECOR.filter(x => S.inv.placed.includes(x.id)).map(x =>
@@ -953,8 +954,34 @@ export function render() {
   document.querySelector('.mbtn[data-k="dig"]').disabled = egg;
 }
 
+// しゅるいごとの ふんいき（キービジュアルの それぞれの はいけい）
+const HEART = 'M12 21s-7-4.4-9.3-8.6C1 9 3 5.5 6.5 5.5c2 0 3.5 1.2 5.5 3.3 2-2.1 3.5-3.3 5.5-3.3C21 5.5 23 9 21.3 12.4 19 16.6 12 21 12 21z';
+const FLAKE = '<path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 3 3-3M9 20l3-3 3 3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>';
+const STAR = 'M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z';
+let ambSp = '';
+function ambient(sp) {
+  if (sp === ambSp) return; ambSp = sp;
+  const el = $('amb'), N = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join('');
+  const svg = (w, inner, st) => `<svg class="p ${st.cls || ''}" width="${w}" height="${w}" viewBox="0 0 24 24" style="left:${st.l}%;top:${st.t}%;animation-delay:${st.d}s;${st.dur ? `animation-duration:${st.dur}s;` : ''}">${inner}</svg>`;
+  let h = '';
+  if (sp === 'momo') h = `<div class="tint" style="background:radial-gradient(circle at 20% 70%,rgba(255,150,200,.45),transparent 55%),radial-gradient(circle at 85% 30%,rgba(255,190,220,.35),transparent 50%)"></div>`
+    + N(6, i => svg(rand(12, 22), `<path d="${HEART}" fill="#ffa3c6" stroke="#fff" stroke-width="1.2"/>`, { l: rand(4, 94), t: rand(10, 62), d: -i * 1.3 }));
+  else if (sp === 'neon') h = `<div class="tint" style="background:radial-gradient(circle at 50% 40%,rgba(160,90,255,.35),transparent 60%),linear-gradient(rgba(40,20,120,.25),rgba(0,0,0,0))"></div>`
+    + N(12, i => `<i class="px" style="left:${rand(3, 95)}%;top:${rand(5, 66)}%;background:${i % 2 ? '#5ff3ff' : '#ff6ff0'};box-shadow:0 0 8px ${i % 2 ? '#5ff3ff' : '#ff6ff0'};animation-delay:${-rand(0, 3)}s"></i>`);
+  else if (sp === 'sabaku') h = `<div class="tint" style="background:radial-gradient(circle at 80% 85%,rgba(255,200,110,.55),transparent 55%),radial-gradient(circle at 15% 20%,rgba(255,230,170,.35),transparent 50%)"></div>`
+    + N(9, i => `<i class="px" style="left:${rand(3, 95)}%;top:${rand(10, 70)}%;width:5px;height:5px;border-radius:50%;background:#ffe39a;box-shadow:0 0 6px #ffd06a;animation-delay:${-rand(0, 3)}s"></i>`);
+  else if (sp === 'yuki') h = `<div class="tint" style="background:radial-gradient(circle at 25% 80%,rgba(235,248,255,.55),transparent 55%),linear-gradient(rgba(230,245,255,.25),rgba(255,255,255,0))"></div>`
+    + N(9, i => svg(rand(10, 20), FLAKE, { cls: 'fall', l: rand(3, 95), t: -10, d: -rand(0, 10), dur: rand(9, 15) }));
+  else if (sp === 'hoshi') h = `<div class="tint" style="background:radial-gradient(circle at 50% 50%,rgba(120,90,255,.4),transparent 65%),linear-gradient(rgba(30,20,110,.3),rgba(0,0,0,0))"></div>`
+    + N(7, i => svg(rand(10, 18), `<path d="${STAR}" fill="#ffd84a"/>`, { l: rand(4, 94), t: rand(6, 64), d: -i * 1.1 }));
+  else if (sp === 'niji') h = `<div class="tint" style="background:radial-gradient(circle at 70% 40%,rgba(255,200,240,.4),transparent 60%)"></div><div class="rb"></div>`
+    + N(7, i => svg(rand(10, 18), `<path d="${STAR}" fill="${['#fff1a0', '#ffc6e8', '#bfe9ff'][i % 3]}"/>`, { l: rand(4, 94), t: rand(6, 64), d: -i * 1.1 }));
+  el.innerHTML = h;
+}
+
 export function decorate() {
-  $('stars').innerHTML = Array.from({ length: 18 }, () => `<i style="left:${rand(2, 98)}%;top:${rand(3, 40)}%;animation-delay:${-rand(0, 3)}s"></i>`).join('');
-  $('bubbles').innerHTML = Array.from({ length: 6 }, (_, i) => `<span class="bub" style="left:${rand(8, 92)}%;animation-delay:${-i * 1.2}s;animation-duration:${rand(6, 9)}s"></span>`).join('');
+  $('stars').innerHTML = Array.from({ length: 18 }, () => `<i style="left:${rand(2, 98)}%;top:${rand(3, 78)}%;animation-delay:${-rand(0, 3)}s"></i>`).join('');
+  $('bubbles').innerHTML = Array.from({ length: 13 }, (_, i) => { const z = Math.round(rand(6, 26)); return `<span class="bub" style="left:${rand(4, 96)}%;width:${z}px;height:${z}px;animation-delay:${-i * 1.1}s;animation-duration:${rand(7, 13)}s"></span>`; }).join('');
+  $('sparks').innerHTML = Array.from({ length: 10 }, (_, i) => `<i class="${i % 3 ? '' : 'y'}" style="left:${rand(4, 96)}%;top:${rand(6, 70)}%;animation-delay:${-rand(0, 2.6)}s;animation-duration:${rand(2, 3.6)}s;transform:scale(${rand(.5, 1)})"></i>`).join('');
   $('rain').innerHTML = Array.from({ length: 40 }, () => `<i style="left:${rand(0, 100)}%;animation-delay:${-rand(0, 1)}s;animation-duration:${rand(.6, 1)}s"></i>`).join('');
 }

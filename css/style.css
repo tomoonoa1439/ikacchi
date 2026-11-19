@@ -387,3 +387,72 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .splash.hide{opacity:0;pointer-events:none}
 @keyframes tapblink{50%{opacity:.35}}
 .kv{width:100%;border-radius:12px;display:block;margin:0 0 10px}
+
+/* =========================================================
+   みずの なか（キービジュアルに あわせた はいけい）
+   ========================================================= */
+.t-day .sky{background:linear-gradient(#a6ecff 0%,#52c6f3 22%,#2c9de6 60%,#2677d6 100%)}
+.t-dawn .sky{background:linear-gradient(#ffd3e6 0%,#9fd9f6 26%,#4aa6e6 64%,#3a7bd6 100%)}
+.t-eve .sky{background:linear-gradient(#ffd0b8 0%,#f0b3d8 22%,#9a96e2 60%,#5a6fd0 100%)}
+.t-night .sky{background:linear-gradient(#1a2466 0%,#1c2a78 40%,#262f8c 75%,#2c2a7e 100%)}
+.w-cloudy .sky{filter:saturate(.6) brightness(.93)}
+.w-rain .sky{filter:saturate(.55) brightness(.85)}
+/* すいめんの ゆらゆら */
+.waterline{top:0;height:22px;opacity:.75;background:radial-gradient(ellipse 16px 7px at 50% 0,rgba(255,255,255,.9),transparent 70%) 0 0/34px 22px repeat-x;animation:surf 6s linear infinite}
+.t-night .waterline{opacity:.25}
+@keyframes surf{to{background-position:68px 0}}
+.water{display:none}
+/* おひさま・おつきさまは すいめんの うえから ぼんやり */
+.orb{top:-30px;right:16%;width:120px;height:120px;filter:blur(10px)}
+.t-day .orb,.t-dawn .orb{background:radial-gradient(#fffbe0,rgba(255,250,210,.6) 40%,transparent 70%);box-shadow:none}
+.t-eve .orb{top:-30px;background:radial-gradient(#ffe2b0,rgba(255,200,170,.5) 40%,transparent 70%);box-shadow:none}
+.t-night .orb{background:radial-gradient(#fbf8e0,rgba(220,220,255,.35) 40%,transparent 70%);box-shadow:none;filter:blur(6px)}
+.cloud{display:none}
+/* ひかりの すじ */
+.rays{position:absolute;inset:0;pointer-events:none;overflow:hidden;mix-blend-mode:screen}
+.rays i{position:absolute;top:-30px;width:46px;height:120%;background:linear-gradient(rgba(255,255,255,.42),rgba(255,255,255,0) 78%);transform-origin:top center;filter:blur(4px);animation:ray 7s ease-in-out infinite}
+.rays i:nth-child(1){left:12%;transform:rotate(14deg);animation-delay:-1s}
+.rays i:nth-child(2){left:30%;width:28px;transform:rotate(9deg);animation-delay:-3s}
+.rays i:nth-child(3){left:52%;width:60px;transform:rotate(4deg);animation-delay:-5s}
+.rays i:nth-child(4){left:70%;width:24px;transform:rotate(-2deg);animation-delay:-2s}
+.rays i:nth-child(5){left:86%;width:40px;transform:rotate(-8deg);animation-delay:-4s}
+@keyframes ray{50%{opacity:.35}}
+.t-night .rays i{background:linear-gradient(rgba(170,190,255,.22),transparent 70%)}
+.w-rain .rays,.w-cloudy .rays{opacity:.4}
+/* よるは ひかる プランクトン */
+.stars i{width:4px;height:4px;box-shadow:0 0 6px 2px rgba(150,230,255,.8);background:#e6fbff}
+/* すなは ぼんやり あかるく */
+.sand{background:linear-gradient(#fbe9c4,#f0d49a);background-image:radial-gradient(rgba(255,255,255,.6) 1.4px,transparent 1.6px),linear-gradient(#fbe9c4,#efd197);background-size:13px 11px,100% 100%;box-shadow:0 -6px 18px rgba(255,255,255,.35)}
+.t-night .sand{filter:brightness(.55) saturate(.9) hue-rotate(-10deg)}
+/* ゆらめく ひかりの もよう */
+.caustic{position:absolute;left:0;right:0;bottom:0;height:30%;pointer-events:none;opacity:.5;mix-blend-mode:soft-light;
+  background:radial-gradient(ellipse 22px 9px at 30% 40%,#fff 0,transparent 70%),radial-gradient(ellipse 30px 10px at 70% 60%,#fff 0,transparent 70%),radial-gradient(ellipse 18px 8px at 50% 20%,#fff 0,transparent 70%);
+  background-size:90px 46px,120px 52px,70px 40px;animation:caus 9s linear infinite}
+@keyframes caus{to{background-position:90px 10px,-120px 0,70px -8px}}
+.t-night .caustic{opacity:.15}
+/* つやつやの あわ */
+.bub{bottom:14%;border:1.5px solid rgba(255,255,255,.9);
+  background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.95) 0 13%,rgba(255,255,255,.12) 18%,rgba(190,235,255,.10) 58%,rgba(255,185,240,.38) 100%);
+  box-shadow:inset -2px -3px 6px rgba(255,160,230,.35),inset 2px 2px 4px rgba(150,240,255,.35),0 0 6px rgba(255,255,255,.35);animation-name:rise2}
+@keyframes rise2{0%{transform:translate(0,0);opacity:0}10%{opacity:1}50%{transform:translate(8px,-150px)}90%{opacity:.85}100%{transform:translate(-4px,-300px);opacity:0}}
+/* きらきら */
+#sparks i{position:absolute;width:12px;height:12px;background:#fff;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation:spk 2.6s ease-in-out infinite;pointer-events:none;filter:drop-shadow(0 0 3px rgba(255,255,255,.9))}
+#sparks i.y{background:#fff1a0}
+@keyframes spk{0%,100%{transform:scale(.2);opacity:0}50%{transform:scale(1);opacity:1}}
+/* しゅるいごとの ふんいき（イラストの いろ）*/
+#amb{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#amb .tint{position:absolute;inset:0}
+#amb .p{position:absolute;opacity:.75;animation:floaty 8s ease-in-out infinite}
+#amb .fall{animation:snow 10s linear infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+@keyframes snow{0%{transform:translateY(-30px) rotate(0)}100%{transform:translateY(360px) rotate(180deg)}}
+#amb .px{position:absolute;width:9px;height:9px;border-radius:2px;animation:pxb 3s ease-in-out infinite}
+@keyframes pxb{50%{opacity:.25}}
+#amb .rb{position:absolute;left:-15%;right:-15%;top:20px;height:300px;opacity:.45;
+  background:radial-gradient(circle at 50% 100%,transparent 50%,#ff9ac0 52%,#ffc98a 55%,#fff39a 58%,#a8eba0 61%,#9fd8ff 64%,#c6a8ff 67%,transparent 69%)}
+.scene.paused #amb *,.scene.paused .bub,.scene.paused #sparks i,.scene.paused .rays i,.scene.paused .caustic,.scene.paused .waterline{animation-play-state:paused}
+/* あめ：すいめんに わっか */
+.rain{inset:0 0 auto 0;height:30px}
+.rain i{top:6px;width:16px;height:5px;border-radius:50%;background:none;border:1.5px solid rgba(255,255,255,.75);animation:ripple 1.2s ease-out infinite}
+@keyframes ripple{0%{transform:scale(.2);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.splash{background:radial-gradient(ellipse at 50% 30%,#3a8fe0,#1c2a6b 75%)}
