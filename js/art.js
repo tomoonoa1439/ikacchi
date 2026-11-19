@@ -2,6 +2,7 @@
 //  えのぐ（SVG）: イカ（しゅるい別）・たまご・ぼうし
 // =========================================================
 import { FORMS, SPECIES } from './config.js';
+export const USE_PHOTO = true;   // イラストの イカを つかう（false で まえの えに もどる）
 
 // 色を しろに ちかづける（あかちゃんは うすい いろ）
 function tint(hex, k) {
@@ -155,7 +156,64 @@ function chroma(P, dark) {
   return `<g class="chroma"><g class="c-dots">${dots}</g><g class="c-stripes">${stripes}</g><g class="c-wave">${waves}</g><g class="c-glow">${glow}</g></g>`;
 }
 
+
+// ---- イラストの イカ（img/sq/○○.webp）----
+// eyes: めの ばしょ（がぞうの px）、lid: まぶたの いろ、hat: ぼうしを のせる ばしょ
+const PHOTO = {
+  momo:   { w: 360, h: 240, eyes: [[115, 120], [220, 145]], lid: ['#fdc2dc', '#fdb7d7'], hat: [150, 22] },
+  neon:   { w: 360, h: 310, eyes: [[127, 145], [220, 170]], lid: ['#3842bc', '#4948ec'], hat: [200, 40] },
+  sabaku: { w: 360, h: 312, eyes: [[108, 165], [200, 185]], lid: ['#fdc666', '#fec874'], hat: [200, 28] },
+  yuki:   { w: 360, h: 318, eyes: [[117, 143], [222, 175]], lid: ['#e3ebfd', '#d8e4fd'], hat: [170, 40] },
+  hoshi:  { w: 360, h: 303, eyes: [[120, 135], [218, 158]], lid: ['#6359fc', '#4662fa'], hat: [170, 40] },
+  niji:   { w: 360, h: 304, eyes: [[112, 140], [212, 158]], lid: ['#f8befc', '#78e6fd'], hat: [150, 45] },
+};
+let uidN = 0;
+function photoSquid(stage, mood, form, hat, spId, sp2) {
+  const Q = PHOTO[spId] || PHOTO.momo, id = 'sq' + (++uidN);
+  const k = 196 / Q.w, H = Q.h * k, y0 = 228 - H, x0 = 2;
+  const src = `img/sq/${PHOTO[spId] ? spId : 'momo'}.webp`;
+  const img = (extra = '') => `<image href="${src}" x="0" y="0" width="${Q.w}" height="${Q.h}" ${extra}/>`;
+  const mix = sp2 && sp2 !== spId && SPECIES[sp2] ? SPECIES[sp2] : null;
+  const f = stage === 'adult' ? (FORMS[form] || FORMS.surume) : null;
+  const ink = '#2b2244';
+  let over = '';
+  // まざった イカ：もう かたほうの いろを うっすら かさねる
+  if (mix) over += `<rect width="${Q.w}" height="${Q.h}" fill="${mix.body}" opacity=".38" mask="url(#${id})" style="mix-blend-mode:multiply"/>
+    <rect width="${Q.w}" height="${Q.h}" fill="${mix.edge}" opacity=".18" mask="url(#${id})"/>`;
+  if (mood === 'sick') over += `<rect width="${Q.w}" height="${Q.h}" fill="#9fcf6a" opacity=".45" mask="url(#${id})" style="mix-blend-mode:multiply"/>`;
+  // かお
+  const [[lx, ly], [rx, ry]] = Q.eyes;
+  if (mood === 'sleep') {
+    over += Q.eyes.map(([x, y], i) => `<ellipse cx="${x}" cy="${y}" rx="24" ry="26" fill="${Q.lid[i]}"/>
+      <path d="M${x - 18} ${y} Q${x} ${y + 13} ${x + 18} ${y}" stroke="${ink}" stroke-width="5" fill="none" stroke-linecap="round"/>`).join('');
+  } else if (mood === 'happy') {
+    over += Q.eyes.map(([x, y], i) => `<ellipse cx="${x}" cy="${y + 4}" rx="24" ry="27" fill="${Q.lid[i]}"/>
+      <path d="M${x - 17} ${y + 6} Q${x} ${y - 14} ${x + 17} ${y + 6}" stroke="${ink}" stroke-width="5.5" fill="none" stroke-linecap="round"/>`).join('');
+  } else if (mood === 'sad') {
+    over += `<path d="M${lx - 24} ${ly - 30} L${lx + 12} ${ly - 40}" stroke="${ink}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M${rx + 24} ${ry - 30} L${rx - 12} ${ry - 40}" stroke="${ink}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M${lx + 14} ${ly + 22} q-7 12 0 16 q7 -4 0 -16 Z" fill="#8fd3ff" stroke="#4aa6e0" stroke-width="2"/>`;
+  } else if (mood === 'sick') {
+    over += Q.eyes.map(([x, y], i) => `<ellipse cx="${x}" cy="${y}" rx="24" ry="26" fill="${Q.lid[i]}"/>
+      <path d="M${x - 14} ${y - 8} l28 16 M${x + 14} ${y - 8} l-28 16" stroke="${ink}" stroke-width="4.5" stroke-linecap="round"/>`).join('')
+      + `<path d="M${rx + 34} ${ry - 50} q-8 14 0 18 q8 -4 0 -18 Z" fill="#8fd3ff" stroke="#4aa6e0" stroke-width="2"/>`;
+  }
+  // ピカピカ タイプ
+  const glow = f && f.glow ? `<g opacity=".85">${[[100, 120], [250, 140], [180, 220], [80, 230], [280, 240]].map(([x, y], i) =>
+    `<circle class="glowdot" cx="${x}" cy="${y}" r="9" fill="${(SPECIES[spId] || {}).glow || '#bff0ff'}" style="animation-delay:${-i * .4}s"/>`).join('')}</g>` : '';
+  const hatG = hat ? `<g transform="translate(${Q.hat[0]} ${Q.hat[1]}) scale(2.3) translate(-100 -30)">${hatSVG(hat)}</g>` : '';
+  return `<svg viewBox="0 0 200 230" data-photo="1">
+    <defs><mask id="${id}" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="${Q.w}" height="${Q.h}">${img()}</mask></defs>
+    <g transform="translate(${x0} ${y0}) scale(${k})">
+      ${img('class="sqimg"')}
+      <g class="chroma-ph" mask="url(#${id})" opacity=".55"><g transform="translate(-20 -40) scale(2)">${chroma(SPECIES[spId] || SPECIES.momo, '#000000')}</g></g>
+      ${over}${glow}${hatG}
+    </g>
+  </svg>`;
+}
+
 export function squidSVG(stage, mood, form, hat, spId = 'momo', sp2 = null) {
+  if (USE_PHOTO) return photoSquid(stage, mood, form, hat, spId, sp2);
   const base = SPECIES[spId] || SPECIES.momo;
   const P = { ...base };
   // まざった イカ：からだは spId、ひれ・あし・もようは sp2
