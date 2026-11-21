@@ -5,7 +5,7 @@
 //    せいかくに あった くちょうで にっきに かく
 //  ・たびだつ ときに、そだててくれた プレイヤーへ てがみを のこす
 // =========================================================
-import { G, pick, dayKey } from './state.js';
+import { G, bus, pick, dayKey } from './state.js';
 import { FOODS, PERSONALITY } from './config.js';
 import { favorite, itemName } from './traits.js';
 
@@ -133,7 +133,7 @@ export function writeDiary(dk) {
   const text = [pick(v.open), ...pickd, pick(v.close)].join('\n');
   const entry = { dk, text, per: S.per, name: myName(), t: Date.now() };
   S.diary ||= [];
-  S.diary.unshift(entry);
+  S.diary.unshift(entry); bus.emit('first', 'diary');
   if (S.diary.length > 60) S.diary.length = 60;
   return entry;
 }

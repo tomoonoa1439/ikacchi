@@ -456,3 +456,92 @@ header{display:flex;align-items:center;justify-content:space-between;gap:6px;mar
 .rain i{top:6px;width:16px;height:5px;border-radius:50%;background:none;border:1.5px solid rgba(255,255,255,.75);animation:ripple 1.2s ease-out infinite}
 @keyframes ripple{0%{transform:scale(.2);opacity:1}100%{transform:scale(1.8);opacity:0}}
 .splash{background:radial-gradient(ellipse at 50% 30%,#3a8fe0,#1c2a6b 75%)}
+
+/* =========================================================
+   ver 2.0：げい・はたけ・はじめての おもいで・しつもん・もようがえ
+   ========================================================= */
+.menu{grid-template-columns:repeat(4,1fr)}
+.tabs{flex-wrap:wrap;border-radius:18px}
+.tab{min-width:30%;font-size:11.5px;padding:6px 3px}
+/* おいわい */
+.toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:9;display:flex;gap:10px;align-items:center;background:#fff;border-radius:18px;padding:8px 16px 8px 10px;box-shadow:0 6px 18px rgba(40,60,120,.25);border:3px solid #ffd54a;animation:toastIn .5s cubic-bezier(.2,1.6,.4,1)}
+.toast small{display:block;font-size:10px;color:var(--sub);font-weight:700}
+.toast b{font-size:15px}
+.toast .ti{display:flex}
+.toast.out{transition:all .5s;opacity:0;transform:translate(-50%,-20px)}
+@keyframes toastIn{from{transform:translate(-50%,-30px) scale(.6);opacity:0}}
+.conf{position:absolute;top:-10px;width:8px;height:12px;border-radius:2px;z-index:8;pointer-events:none;animation:conf 2.1s ease-in forwards}
+@keyframes conf{to{transform:translate(var(--dx),360px) rotate(var(--r));opacity:.2}}
+/* げい */
+.trickbox{background:#fff7e8;border-radius:16px;padding:12px;margin:8px 0;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
+.trickbox small{color:var(--sub)}
+.pips{display:flex;gap:5px;justify-content:center;margin:4px 0}
+.pips i{width:18px;height:18px;border-radius:50%;background:#eadfc8;box-shadow:inset 0 2px 0 rgba(0,0,0,.08)}
+.pips i.on{background:radial-gradient(circle at 35% 30%,#fff 0 15%,#ffd54a 20%,#f0a020 100%);box-shadow:0 0 6px rgba(255,200,60,.7)}
+.lesson{display:flex;align-items:center;justify-content:center;gap:14px;min-height:110px}
+.lsq{width:110px}
+.lsq svg{width:100%;height:auto;overflow:visible}
+.lcue{width:78px;height:78px}
+.lcue svg{width:100%;height:100%;animation:cuePop .3s ease-out}
+@keyframes cuePop{from{transform:scale(.4)}}
+.lseq{display:flex;gap:6px;justify-content:center;margin:6px 0}
+.lseq i{width:14px;height:14px;border-radius:50%;background:#eadfc8}
+.lseq i.ok{background:#7cc68d}.lseq i.ng{background:#f08a8a}
+.cues{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.cue{border:none;background:#fff;border-radius:16px;padding:6px;box-shadow:0 3px 0 rgba(0,0,0,.1)}
+.cue:active{transform:translateY(2px);box-shadow:none}
+.cue:disabled{opacity:.4}
+.cue svg{width:100%;height:auto;display:block}
+.trick-kururin .squid-inner,.lsq.trick-kururin svg{animation:tKururin 1.2s ease-in-out}
+.trick-jump .squid-inner,.lsq.trick-jump svg{animation:tJump 1s ease-out}
+.trick-ojigi .squid-inner,.lsq.trick-ojigi svg{animation:tOjigi 1.4s ease-in-out}
+.trick-dance .squid-inner,.lsq.trick-dance svg{animation:tDance 1.5s ease-in-out}
+.trick-sumiart .squid-inner,.lsq.trick-sumiart svg{animation:tJump 1s ease-out}
+.trick-hikari .squid-inner,.lsq.trick-hikari svg{animation:tHikari 1.5s ease-in-out}
+.lsq.trick-shake svg{animation:tShake .6s ease-in-out}
+@keyframes tKururin{0%{transform:rotate(0)}70%{transform:rotate(380deg)}100%{transform:rotate(360deg)}}
+@keyframes tJump{0%,100%{transform:translateY(0) scale(1)}15%{transform:translateY(0) scale(1.1,.85)}50%{transform:translateY(-60px) scale(.95,1.08)}85%{transform:translateY(0) scale(1.08,.9)}}
+@keyframes tOjigi{0%,100%{transform:rotate(0)}35%,65%{transform:rotate(28deg) translateY(6px)}}
+@keyframes tDance{0%,100%{transform:rotate(0)}15%{transform:rotate(-14deg) translateX(-8px)}35%{transform:rotate(14deg) translateX(8px)}55%{transform:rotate(-14deg) translateX(-8px) translateY(-10px)}75%{transform:rotate(14deg) translateX(8px)}}
+@keyframes tHikari{0%,100%{filter:none}30%,60%{filter:brightness(1.6) drop-shadow(0 0 18px #fff6b0)}}
+@keyframes tShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.inkheart{position:absolute;bottom:40%;z-index:6;pointer-events:none;animation:inkh 2.6s ease-out forwards}
+@keyframes inkh{0%{transform:scale(.2);opacity:0}25%{transform:scale(1.1);opacity:1}70%{opacity:.9}100%{transform:scale(1.4) translateY(-30px);opacity:0}}
+/* はたけ */
+.plots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.plot{background:linear-gradient(#fff7e8,#f3e1bd);border-radius:16px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-height:150px;justify-content:space-between}
+.plot .pic{height:44px;display:flex;align-items:center}
+.plot small{font-size:10.5px;color:var(--sub);line-height:1.3}
+.plot.bloom{background:linear-gradient(#fffbe0,#ffe9a8);box-shadow:0 0 0 3px #ffd54a inset;animation:bloomGlow 1.6s ease-in-out infinite}
+@keyframes bloomGlow{50%{box-shadow:0 0 0 3px #ffd54a inset,0 0 14px rgba(255,210,80,.8)}}
+.plot .bar.sm{width:90%}
+.gseen{display:flex;flex-wrap:wrap;gap:6px}
+.gseen span{width:34px;height:34px;border-radius:10px;background:#fff7e8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#c9b99a}
+.reveal{display:flex;justify-content:center;margin:6px 0}
+.rv{width:110px;height:110px;border-radius:50%;background:radial-gradient(#fffbe0,#ffe6a0);display:flex;align-items:center;justify-content:center;animation:rvPop .7s cubic-bezier(.2,1.6,.4,1)}
+@keyframes rvPop{from{transform:scale(.2) rotate(-40deg);opacity:0}}
+em.new{font-style:normal;background:#ff8fb0;color:#fff;border-radius:99px;padding:1px 10px;font-size:12px}
+/* はじめての おもいで */
+.firsts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
+.fst{border:none;background:#fff;border-radius:14px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 2px 0 rgba(0,0,0,.06);font-family:inherit}
+.fst .fsq{width:62px;height:56px;display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(#bfeaff,#e9f8ff);border-radius:10px;overflow:hidden}
+.fst .fsq svg{width:58px;height:auto}
+.fst b{font-size:10.5px;line-height:1.25;text-align:center}
+.fst small{font-size:9.5px;color:var(--sub)}
+.fst.unk{opacity:.55;background:#f5ecda}
+.fst.unk .fsq{background:#eadfc8;align-items:center;font-size:22px;font-weight:800;color:#c9b99a}
+.photoframe{background:linear-gradient(#bfeaff,#e9f8ff);border:6px solid #fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.12);max-width:200px;margin:0 auto}
+.zsq.hero.sm{max-width:110px;margin:0 auto}
+/* もようがえ */
+.scene.room .decor{cursor:grab;touch-action:none;outline:2px dashed rgba(255,255,255,.8);outline-offset:3px;border-radius:8px;animation:roomWig 1.2s ease-in-out infinite;z-index:5}
+.scene.room .decor.drag{cursor:grabbing;animation:none;filter:drop-shadow(0 8px 6px rgba(0,0,0,.25));transform:translateX(-50%) scale(1.15)}
+@keyframes roomWig{0%,100%{transform:translateX(-50%) rotate(-3deg)}50%{transform:translateX(-50%) rotate(3deg)}}
+.roombar{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:9;background:#fff;border-radius:99px;padding:6px 6px 6px 14px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);white-space:nowrap}
+.scene.room #pet,.scene.room #visitor{pointer-events:none}
+span.bar{display:block}
+.fst .fsq.st-baby svg{width:34px}.fst .fsq.st-child svg,.fst .fsq.st-teen svg{width:46px}
+.photoframe.st-baby svg{width:50%;margin:0 auto}.photoframe.st-child svg{width:72%;margin:0 auto}
+.photoframe{display:flex;align-items:flex-end;justify-content:center;min-height:150px}
+.zsq.hero.photoframe{width:200px;max-width:200px;height:160px;padding:8px 0 0}
+.zsq.hero.photoframe svg{width:80%;height:auto}
+.zsq.hero.photoframe.st-baby svg{width:48%}.zsq.hero.photoframe.st-child svg{width:64%}

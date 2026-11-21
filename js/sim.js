@@ -45,6 +45,7 @@ export function wake(S = G.state) { S.sleeping = false; S.lightsOff = false; S.p
 
 export function step(dt, live) {
   const r = CONFIG.rates, S = G.state;
+  S.gmin = (S.gmin || 0) + dt;   // はたけの じかん（ストップちゅうは すすまない）
 
   if (S.stage === 'egg') {
     const e = S.egg;
@@ -155,6 +156,7 @@ export function hatch(live) {
   if (!S.seenSp.includes(S.sp)) S.seenSp = [...S.seenSp, S.sp];
   const sp = speciesOf(S.sp);
   S.lastTouch = 0; remember('たまごから うまれた', 3);
+  S.firsts = {}; S.tricks = {}; S.days = 1; bus.emit('first', 'hatch');
   log(`${S.gen > 1 ? S.gen + 'だいめの ' : ''}${spName(S.sp, S.sp2)}が うまれた！${sp.rare ? '（レア！）' : ''}`);
   if (live) {
     say(live, sp.rare ? `ぱかっ！ まぼろしの ${sp.name}だ！` : `ぱかっ！ ${spName(S.sp, S.sp2)}が うまれたよ！`);
@@ -189,6 +191,7 @@ function grow(st, live) {
   if (st.id === 'child') { S.care = { good: 0, bad: 0, feed: 0, play: 0 }; if (live) setTimeout(() => bus.emit('perreveal'), 3500); }
   if (st.id === 'adult') { S.form = decideForm(S.care, S); S.seenForm ||= []; if (!S.seenForm.includes(S.form)) S.seenForm.push(S.form); }
   const nm = stageName(S);
+  if (st.id === 'child' || st.id === 'adult') bus.emit('first', st.id);
   log(`${nm}に せいちょうした！`); remember(`${nm}に なった`, st.id === 'adult' ? 3 : 2);
   if (live) { say(live, `${nm}に せいちょうした！`); bus.emit('fx', 'sparkle'); bus.emit('fx', 'party', 30); bus.emit('beep', 880, .15); }
 }

@@ -6,6 +6,8 @@ import { G, bus, rand, pick, dayKey, isNight, timeOfDay, TOD_LABEL, save, newSta
 import { stageInfo, stageName, bondLevel, weatherToday, baseWeight, ageYears, lifespan, speciesOf, spName } from './sim.js';
 import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
+import { openGarden, openTricks, roomMode, toggleRoom, firstsHTML, firstDetail } from './ui2.js';
+import { FIRSTS } from './growth.js';
 import { net, makeLink } from './net.js';
 import { REL, REL_RULE, relOf, relStage, perOf, friendPer, compat, compatMark } from './social.js';
 import { cardTraits } from './traits.js';
@@ -73,7 +75,7 @@ export function closeModal() {
 }
 // できごとの おしらせは じゅんばんに だす
 const mq = [];
-function eventModal(fn) { if (G.modalOpen) mq.push(fn); else fn(); }
+export function eventModal(fn) { if (G.modalOpen) mq.push(fn); else fn(); }
 $('modal').addEventListener('click', ev => {
   const el = ev.target.closest('[data-a]'); if (!el || el.disabled) return;
   if (el.dataset.a === 'close') return closeModal();
@@ -116,7 +118,8 @@ function openPlay() {
   showModal(`<h3>${ic('ball', 20)} なにで あそぶ？</h3><div class="choices">
     <button class="choice" data-a="g1"><span class="ic">${ic('eyes', 20)}</span><span class="grow">どっちむく？<small>イカが むく ほうを あてよう</small></span></button>
     <button class="choice" data-a="g2"><span class="ic">${ic('target', 20)}</span><span class="grow">スミでっぽう<small>タイミングよく スミを とばそう</small></span></button>
-  </div>${closeBtn('やめる')}`, { g1: openGame, g2: openInk });
+    <button class="choice" data-a="g3"><span class="ic">${ic('wand', 20)}</span><span class="grow">げいを おしえる<small>おてほんを みせて、げいを おぼえて もらおう</small></span></button>
+  </div>${closeBtn('やめる')}`, { g1: openGame, g2: openInk, g3: () => openTricks() });
 }
 
 /* スミでっぽう：うごく ねらいが まとに かさなったら タップ */
@@ -186,7 +189,8 @@ function openDig() {
     else if (r.kind === 'find') {
       cells[i] = ic(r.f.ic, 40); beep(r.f.rare >= 3 ? 1200 : 900, .12);
       msg = `${r.treasure ? 'たからの ちずの ばしょだ！ ' : ''}「${r.f.name}」を みつけた！${'★'.repeat(r.f.rare)}${r.first ? '<br><b>ずかんに とうろく！ かいがら+2</b>' : ''}`;
-    } else { cells[i] = ic('poof', 40); msg = r.text; beep(300, .06); }
+    } else if (r.kind === 'seed') { cells[i] = ic('seed', 40); msg = 'なぞの たねを みつけた！ はたけに うえてみよう'; beep(900, .08); }
+    else { cells[i] = ic('poof', 40); msg = r.text; beep(300, .06); }
     draw();
   }
   draw();
@@ -207,7 +211,7 @@ function openShop(tab = shopTab) {
     ${own ? `<button class="btn sm ${on ? 'gray' : ''}" data-a="hat" data-id="${h.id}">${on ? 'はずす' : 'つける'}</button>`
           : `<button class="btn sm" data-a="buy" data-k="hat" data-id="${h.id}" ${S.shells < h.price ? 'disabled' : ''}>${ic('shell', 20)}${h.price}</button>`}</div>`;
   }).join('');
-  if (tab === 'decor') body = DECOR.map(d => {
+  if (tab === 'decor') body = DECOR.filter(d => !d.garden || S.inv.decor.includes(d.id)).map(d => {
     const own = S.inv.decor.includes(d.id), on = S.inv.placed.includes(d.id);
     return `<div class="choice"><span class="ic">${ic(d.ic, 28)}</span><span class="grow">${d.name}<small>${own ? (on ? 'おいてある' : 'しまってある') : 'もようがえ'}</small></span>
     ${own ? `<button class="btn sm ${on ? 'gray' : ''}" data-a="decor" data-id="${d.id}">${on ? 'しまう' : 'おく'}</button>`
@@ -261,7 +265,7 @@ function useToolUI(id) {
 }
 
 /* ---------------- ずかん ---------------- */
-let zukanTab = 'finds';
+let zukanTab = 'first';
 function openZukan(tab = zukanTab) {
   zukanTab = tab;
   const S = G.state;
@@ -297,15 +301,17 @@ function openZukan(tab = zukanTab) {
       ? `<div class="choice"><span class="ic">${ic({ tako: 'tako', fisher: 'hook', shark: 'shark', star: 'sparkle', bottle: 'bottle', jelly: 'jelly', map: 'map', crabs: 'crab', diver: 'camera', lost: 'pearl', whale: 'whale', wave: 'wave' }[id], 28)}</span><span class="grow">${n}<small>${seen[id]}かい</small></span></div>`
       : `<div class="choice unk"><span class="ic">？</span><span class="grow">？？？<small>まだ であって いない</small></span></div>`).join('')}</div>`;
   }
+  if (tab === 'first') body = firstsHTML(S);
   if (tab === 'album') {
     body = S.album.length ? `<div class="choices">${S.album.map(a => { const f = FORMS[a.form] || FORMS.surume, sp = speciesOf(a.sp); return `
       <button class="choice" data-a="alb" data-i="${S.album.indexOf(a)}"><span class="asq">${squidSVG('adult', 'happy', a.form, a.hat, a.sp || 'momo', a.sp2)}</span>
       <span class="grow">${a.gen}だいめ ${esc(a.name)}<small>${(f.prefix ? f.prefix + ' ' : '') + sp.name}・${a.release ? 'うみに かえした・' : ''}${a.days}にち いっしょに いた${a.letter ? '・てがみ あり' : ''}</small></span></button>`; }).join('')}</div>`
       : '<p>まだ たびだった イカは いないよ<br>おとなに なって しばらくすると、ひろい うみへ たびだつよ</p>';
   }
-  showModal(`<h3>${ic('book', 20)} ずかん</h3>${tabs([['finds', 'もの'], ['forms', 'すがた'], ['per', 'せいかく'], ['event', 'できごと'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
+  showModal(`<h3>${ic('book', 20)} ずかん</h3>${tabs([['first', 'はじめて'], ['finds', 'もの'], ['forms', 'すがた'], ['per', 'せいかく'], ['event', 'できごと'], ['album', 'アルバム']], tab)}<div class="scroll">${body}</div>${closeBtn()}`, {
     tab: el => openZukan(el.dataset.t),
     alb: el => openAlbumEntry(+el.dataset.i),
+    fst: el => firstDetail(el.dataset.id, () => openZukan('first')),
     sell: el => { dispatch('sell', { id: el.dataset.id }); openZukan(); },
   });
 }
@@ -324,6 +330,8 @@ function openAlbumEntry(i) {
         ${a.kids?.length ? `<div><span>こども</span><b>${a.kids.length}にん</b></div>` : ''}
         <div><span>いっしょに いた</span><b>${a.days}にち</b></div>
       </div>
+      ${a.tricks?.length ? `<h4>おぼえた げい</h4><p>${a.tricks.map(esc).join('・')}</p>` : ''}
+      ${a.firsts && Object.keys(a.firsts).length ? `<h4>はじめての おもいで ${Object.keys(a.firsts).length}こ</h4><div class="firsts">${FIRSTS.filter(f => a.firsts[f.id]).map(f => { const s = a.firsts[f.id]; return `<div class="fst"><span class="fsq st-${s.st}">${squidSVG(s.st, s.m, s.form, s.hat, s.sp, s.sp2)}</span><b>${f.name}</b></div>`; }).join('')}</div>` : ''}
       ${a.letter ? `<h4>のこした てがみ</h4><div class="letter">${esc(a.letter).replace(/\n/g, '<br>')}</div>` : ''}
       ${a.diary?.length ? `<h4>にっき</h4>${a.diary.map(d => `<div class="dpage"><b>${dkFmt(d.dk)}</b><div>${esc(d.text).replace(/\n/g, '<br>')}</div></div>`).join('')}` : ''}
     </div>
@@ -737,7 +745,7 @@ export function askName() {
   showModal(`<h3>${ic('chick', 20)} ${spName(S.sp, S.sp2)}が うまれたよ！</h3>${speciesOf(S.sp).rare ? '<p><b class="rare">まぼろしの レアイカ！</b></p>' : ''}<div class="zsq hero">${squidSVG('baby', 'happy', null, null, S.sp, S.sp2)}</div><p>${S.sp2 && S.sp2 !== S.sp ? `${esc((S.parents || []).map(p => p.name).join(' と '))}の こども。ふたりの いいところを まぜた すがた！` : speciesOf(S.sp).desc}<br>${S.parent ? `おやの ${esc(S.parent.name)}に にてるかな？<br>` : ''}どんな こに そだつかな？<br>なまえを つけてあげよう</p>
     <input id="nameInput" maxlength="8" placeholder="イカッチ">
     <div class="row"><button class="btn" data-a="ok">けってい</button></div>`, { ok }, true);
-  function ok() { S.name = ($('nameInput').value.trim() || 'イカッチ'); closeModal(); say(`ぼく ${S.name}！ よろしくね`); render(); save(); }
+  function ok() { S.name = ($('nameInput').value.trim() || 'イカッチ'); bus.emit('first', 'name'); closeModal(); say(`ぼく ${S.name}！ よろしくね`); render(); save(); }
   $('nameInput').onkeydown = e => { if (e.key === 'Enter') ok(); };
   setTimeout(() => { try { $('nameInput').focus(); } catch (e) {} }, 50);
 }
@@ -784,9 +792,11 @@ const MENU = [
   { k: 'friends', ic: 'friends', t: 'ともだち', fn: () => openFriends() },
   { k: 'tree', ic: 'tree', t: 'かけいず', fn: openTree },
   { k: 'diary', ic: 'diary', t: 'にっき', fn: () => openDiary() },
+  { k: 'garden', ic: 'sprout', t: 'はたけ', fn: () => openGarden() },
+  { k: 'room', ic: 'hand', t: 'もようがえ', fn: () => toggleRoom() },
 ];
 $('menu').innerHTML = MENU.map(m => `<button class="mbtn" data-k="${m.k}"><span>${ic(m.ic, 22)}</span>${m.t}</button>`).join('');
-$('menu').addEventListener('click', e => { const b = e.target.closest('.mbtn'); if (!b) return; beep(520, .05); if (G.state.paused && ['dig', 'friends'].includes(b.dataset.k)) { say('ストップちゅうだよ。さいかいしてね'); return; } MENU.find(m => m.k === b.dataset.k).fn(); });
+$('menu').addEventListener('click', e => { const b = e.target.closest('.mbtn'); if (!b) return; beep(520, .05); if (G.state.paused && ['dig', 'friends', 'garden', 'room'].includes(b.dataset.k)) { say('ストップちゅうだよ。さいかいしてね'); return; } MENU.find(m => m.k === b.dataset.k).fn(); });
 $('actions').addEventListener('click', e => {
   const b = e.target.closest('.act'); if (!b || b.disabled) return;
   beep(520, .05);
@@ -840,8 +850,14 @@ export function render() {
   ambient(S.sp || 'momo');
 
   // decor
-  $('decor').innerHTML = DECOR.filter(x => S.inv.placed.includes(x.id)).map(x =>
-    `<div class="decor ${x.glow ? 'glow' : ''}" style="left:${x.x}%;bottom:${x.y}%">${ic(x.ic, x.size + 6)}</div>`).join('');
+  if (!roomMode()) {
+    const dkey = JSON.stringify([S.inv.placed, S.inv.pos]);
+    if ($('decor').dataset.k !== dkey) {
+      $('decor').dataset.k = dkey;
+      $('decor').innerHTML = DECOR.filter(x => S.inv.placed.includes(x.id)).map(x => { const p = S.inv.pos?.[x.id] || x;
+        return `<div class="decor ${x.glow ? 'glow' : ''}" data-id="${x.id}" style="left:${p.x}%;bottom:${p.y}%">${ic(x.ic, x.size + 6)}</div>`; }).join('');
+    }
+  }
 
   // pet
   const pet = $('pet');

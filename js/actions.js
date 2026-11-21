@@ -10,6 +10,7 @@ import { nudge, traitMul, like, favorite, disliked, inheritTraits, perLabel, rem
 import { lineageFor, meAsParent, lineageForCard, MAX_EGGS } from './family.js';
 import { stat } from './story.js';
 import { epi, reunion, markSeen } from './memory.js';
+import { learned, lesson, perform, plant, water, harvest, answer, first } from './growth.js';
 
 const say = t => bus.emit('say', t);
 const fx = (c, d) => bus.emit('fx', c, d);
@@ -77,7 +78,7 @@ const A = {
     S.weight += (f.weight || 0) * traitMul(S.tr).weight;
     like('food', id, S.hunger < 60 && S.happy > 45 ? 1 : S.hunger > 85 ? -1 : .3);
     if (fav) S.happy = clamp(S.happy + 10);
-    stat('eat', id);
+    stat('eat', id); bus.emit('first', 'meal');
     if (S.hunger > 70) nudge({ kui: 1 }); else if (f.hunger < 10) nudge({ kui: .8 });
     // わがまま中に おやつ → あまやかし。おなかが すいてる ときの ごはん → きそく ただしく
     if (S.fake) nudge({ sunao: -2.5, kind: .5 });
@@ -97,7 +98,7 @@ const A = {
   futon() {
     const S = G.state;
     if (S.sleeping && !S.lightsOff) {           // かってに ねた → でんきを けして おふとんへ
-      S.lightsOff = true; S.pos = 22; S.shells += 1; care('good'); addBond(1); nudge({ sunao: .5 });
+      S.lightsOff = true; S.pos = 22; S.shells += 1; care('good'); addBond(1); nudge({ sunao: .5 }); bus.emit('first', 'bed');
       say('でんきを けしたよ。おやすみ…'); return;
     }
     if (S.sleeping) {
@@ -106,7 +107,7 @@ const A = {
       return;
     }
     if (S.energy > 85 && !isNight()) { say('まだ ねむくないよ！'); return; }
-    S.sleeping = true; S.lightsOff = true; S.pos = 22; S.fake = false; say('おやすみなさい…');
+    S.sleeping = true; S.lightsOff = true; S.pos = 22; S.fake = false; say('おやすみなさい…'); bus.emit('first', 'bed');
     if (S.energy < 40 || isNight()) { S.shells += 1; care('good'); addBond(1); nudge({ sunao: .8 }); }
   },
   scold() {
@@ -126,7 +127,7 @@ const A = {
   foundHide() {
     const S = G.state;
     S.happy = clamp(S.happy + 8); addBond(1); nudge({ kouki: .5, amae: .4 });
-    say(pick(['みつかっちゃった〜！', 'えへへ、さすが！', 'なんで わかったの！？'])); fx('sparkle'); beep(990, .08);
+    say(pick(['みつかっちゃった〜！', 'えへへ、さすが！', 'なんで わかったの！？'])); fx('sparkle'); beep(990, .08); bus.emit('first', 'hide');
     G.state.lastTouch = G.state.ageMin;
   },
   // ---------- どうぐ ----------
@@ -154,11 +155,12 @@ const A = {
     const lovers = S.friends.filter(f => S.rel?.[f.pid]?.lover).map(f => f.name);
     if (S.stage !== 'egg') S.album.unshift({ uid: S.uid, gen: S.gen, name: S.name || 'イカッチ', sp: S.sp, sp2: S.sp2 || null, form: S.form, hat: S.inv.hat,
       days: +(S.ageMin / 1440).toFixed(1), bond: bondLevel(), mistakes: S.mistakes, t: Date.now(), release, per: S.per,
-      lovers, kids: S.kids || [], parents: S.parents || [], letter, diary: (S.diary || []).slice(0, 14) });
+      lovers, kids: S.kids || [], parents: S.parents || [], letter, diary: (S.diary || []).slice(0, 14), firsts: S.firsts || {}, tricks: learned(S).map(t => t.name) });
     const egg = (S.eggBox || []).find(e => e.id === eggId);
     const keep = { seenSp: S.seenSp, seenPer: S.seenPer, seenForm: S.seenForm, player: S.player, rel: {}, shells: S.shells + (release ? 0 : 20), inv: S.inv, friends: S.friends, friendPlay: S.friendPlay, redeemed: S.redeemed,
                    album: S.album.slice(0, 30), log: S.log, gen: S.gen + 1, rainbowDay: S.rainbowDay, lastDay: S.lastDay,
-                   eggBox: (S.eggBox || []).filter(e => e.id !== eggId) };
+                   eggBox: (S.eggBox || []).filter(e => e.id !== eggId),
+                   garden: S.garden, gmin: S.gmin, gseen: S.gseen, pdays: S.pdays, pans: S.pans, nightNote: S.nightNote };
     const parent = { name: S.name || 'イカッチ', per: S.per };
     G.state = Object.assign(newState(), keep);
     const N = G.state;
@@ -211,7 +213,7 @@ const A = {
     G.busy = true; S.pos = 80; say('トイレ いってくる！');
     setTimeout(() => {
       S.bladder = 0; S.happy = clamp(S.happy + 10); S.shells += 2; care('good'); addBond(2); nudge({ sunao: 1 });
-      say('ひとりで できた！ スッキリ〜'); fx('sparkle'); beep(880, .1); bus.emit('changed');
+      say('ひとりで できた！ スッキリ〜'); fx('sparkle'); beep(880, .1); bus.emit('first', 'toilet'); bus.emit('changed');
       setTimeout(() => { S.pos = 50; G.busy = false; bus.emit('changed'); }, 1200);
     }, 1600);
   },
@@ -240,7 +242,7 @@ const A = {
     if (S.stage === 'egg') return A.talk();
     if (asleepBlock()) return;
     if (Date.now() - G.lastPet < 2500) { say('くすぐったいよ〜'); return; }
-    G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1); stat('pet');
+    G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1); stat('pet'); bus.emit('first', 'pet');
     nudge(S.fake ? { kind: 1, sunao: -1.5 } : { kind: 1.5, yuki: .6 });   // わがまま中に なでると あまえんぼうに
     S.fake = false;
     say(pick(['えへへ', 'なでなで うれしい！', 'すき〜！'])); fx('heart'); bus.emit('bounce'); beep(980, .05);
@@ -256,6 +258,7 @@ const A = {
     S.fake = false;
     S.weight = Math.max(baseWeight(S.stage), S.weight - 1);
     if (win) S.shells += 3;
+    bus.emit('first', 'play'); if (win) bus.emit('first', 'win');
     say(win ? 'たのしかった〜！' : 'くやしい… もういっかい！'); if (win) fx('party');
   },
 
@@ -282,15 +285,36 @@ const A = {
     }
     if (r < .38) { const n = 1 + Math.floor(rand(0, 3)); S.shells += n; return { kind: 'shells', n }; }
     if (r < .78) {
-      const f = rollFind(), first = !S.inv.finds[f.id];
+      const f = rollFind(), first = !S.inv.finds[f.id]; bus.emit('first', 'dig');
       S.inv.finds[f.id] = (S.inv.finds[f.id] || 0) + 1;
       if (first) { S.shells += 2; log(`ずかんに「${f.name}」が とうろくされた`); }
       if (f.rare >= 3) { log(`すなほりで「${f.name}」を みつけた！`); remember(`${f.name}を みつけた`, 2); }
       return { kind: 'find', f, first };
     }
+    if (r < .86) { S.inv.seeds = (S.inv.seeds || 0) + 1; return { kind: 'seed' }; }
     return { kind: 'none', text: pick(['なにも なかった…', 'ヤドカリが にげていった', 'キラッと…きのせいだった']) };
   },
 
+  // ---------- げい ----------
+  lesson({ acc }) { if (asleepBlock()) return null; return lesson(acc); },
+  perform({ id }) { if (asleepBlock()) return false; return perform(id); },
+  // ---------- はたけ ----------
+  plant({ i }) { return plant(i); },
+  water({ i }) { return water(i); },
+  harvest({ i }) { return harvest(i); },
+  // ---------- しつもん ----------
+  answer({ id, a }) { return answer(id, a); },
+  // ---------- もようがえ（じゆうに おく）----------
+  placeDecor({ id, x, y }) {
+    const S = G.state; S.inv.pos ||= {};
+    S.inv.pos[id] = { x: Math.round(clamp(x, 3, 97)), y: Math.round(clamp(y, 1, 34)) };
+  },
+  roomDone({ moved }) {
+    const S = G.state;
+    if (!moved) return;
+    first('room'); nudge({ kouki: .6, kirei: .4 }); S.happy = clamp(S.happy + 5);
+    log('おへやを もようがえ した');
+  },
   // ---------- ショップ / もちもの ----------
   buy({ kind, id }) {
     const S = G.state;
@@ -312,6 +336,7 @@ const A = {
   equipHat({ id }) {
     const S = G.state; S.inv.hat = S.inv.hat === id ? null : id;
     if (!S.inv.hat) return;
+    bus.emit('first', 'hat');
     const v = S.likes?.hat?.[id] || 0;
     if (v >= 3) { say('だいすきな ぼうしだ！'); S.happy = clamp(S.happy + 8); } else if (v <= -3) { say('これ… あんまり すきじゃない'); S.happy = clamp(S.happy - 5); } else say('にあう？');
     fx('sparkle');
@@ -341,14 +366,14 @@ const A = {
       else if (card.hat && card.hat !== old.hat) r.grew = 'hat';
     }
     S.friends = [entry, ...S.friends.filter(f => f.pid !== card.pid)].slice(0, CONFIG.maxFriends);
-    if (!old) { log(`${card.owner || 'だれか'}の ${card.name} と ともだちに なった`); nudge({ kouki: 1 }); remember(`${card.name}と であった`, 1); }
+    if (!old) { bus.emit('first', 'friend'); log(`${card.owner || 'だれか'}の ${card.name} と ともだちに なった`); nudge({ kouki: 1 }); remember(`${card.name}と であった`, 1); }
     return true;
   },
   removeFriend({ pid }) { const S = G.state; S.friends = S.friends.filter(f => f.pid !== pid); if (G.visitor && G.visitor.card.pid === pid) G.visitor = null; },
   inviteFriend({ pid }) {
     const S = G.state, f = S.friends.find(x => x.pid === pid);
     if (!f) return;
-    G.visitor = { card: f, pos: 72 };
+    G.visitor = { card: f, pos: 72 }; bus.emit('first', 'visit');
     const r = relOf(pid), prev = r.seen || f.lastVisit || null;   // はじめてなら null
     f.lastVisit = Date.now();
     const lines = reunion(f, r, prev);

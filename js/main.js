@@ -10,10 +10,15 @@ import { idleTick, setWeatherFn } from './traits.js';
 import { eventTick } from './events.js';
 import { diaryCheck } from './story.js';
 import { welcomeBack } from './memory.js';
+import { initGrowth, countDay, souvenir, pickQuestion, restCheck, refLine, lifeGreet } from './growth.js';
+import { trickIdle, askQuestion, showSouvenir, showMilestone } from './ui2.js';
 
 G.state = load() || newState();
+initGrowth();
 setWeatherFn(() => weatherToday().id);
 const away = catchUp();
+const mile = away.daily ? countDay() : null;
+const gift = souvenir(away.mins);
 
 // にじの日ボーナス
 const w = weatherToday();
@@ -30,14 +35,17 @@ setTimeout(() => {
   const S = G.state;
   if (away.daily) { log('きょうも あそびに きた'); say(`きょうも きてくれた！ かいがら+5 ／ きょうの てんき：${w.name}`); }
   else if (S.stage === 'egg' && S.egg.hatch === 0) say('イカの たまごが とどいた！ あたためて ふかそう');
-  else if (away.mins > 5 && S.stage !== 'egg') say(away.newMistakes ? `るすのあいだに おせわミスが ${away.newMistakes}かい…` : away.newMesses ? `るすのあいだに ${away.newMesses}かい もらしちゃった…` : welcomeBack(away.mins));
+  else if (away.mins > 5 && S.stage !== 'egg') say(away.newMistakes ? `るすのあいだに おせわミスが ${away.newMistakes}かい…` : away.newMesses ? `るすのあいだに ${away.newMesses}かい もらしちゃった…` : welcomeBack(away.mins) + (lifeGreet() ? '　' + lifeGreet() : ''));
   askName();
   if (diaryCheck()) setTimeout(() => say(`${S.name || 'イカッチ'}が にっきを かいていたよ。「にっき」で よめるよ`), 3600);
   if (S.travelReady) bus.emit('travel', false);
+  if (mile) setTimeout(() => showMilestone(mile), 2500);
+  if (gift) setTimeout(() => showSouvenir(gift), mile ? 2600 : 4200);
   checkHash();
 }, 500);
 
 let tick = 0;
+G.activeSec = 0;
 setInterval(() => {
   const S = G.state;
   tick++;
@@ -51,6 +59,12 @@ setInterval(() => {
     // けんか中は はなれて、こいびとは となりに
     G.visitor.pos = r.kenka ? Math.round(rand(80, 86)) : r.lover && !S.sleeping ? Math.min(84, S.pos + 26) : Math.round(rand(62, 78));
     socialTick();
+  }
+  if (!document.hidden) { G.activeSec++; const rc = restCheck(G.activeSec); if (rc) say(rc); }
+  if (tick % 5 === 0) {
+    trickIdle();
+    if (!G.modalOpen && !G.visitor && tick > 60 && Math.random() < .05) { const q = pickQuestion(); if (q) askQuestion(q); }
+    else if (!G.visitor && !S.sleeping && S.stage !== 'egg' && Math.random() < .012) { const t = refLine(); if (t) say(t); }
   }
   if (tick % 5 === 0) { idleTick(); eventTick(); if (diaryCheck()) say(`${S.name || 'イカッチ'}が きのうの にっきを かいたよ`); }
   render();

@@ -59,6 +59,11 @@ export const DECOR = [
   { id: 'coral',    ic: 'coral', name: 'サンゴ',       price: 20, x: 53, y: 21, size: 40 },
   { id: 'lantern',  ic: 'lantern', name: 'ちょうちん',   price: 30, x: 6,  y: 25, size: 30, glow: true },
   { id: 'chest',    ic: 'chest', name: 'たからばこ',   price: 40, x: 68, y: 20, size: 32 },
+  // はたけで さく もの（ショップには ない）
+  { id: 'seaflower',  ic: 'seaflower',  name: 'うみのはな',       price: 0, x: 30, y: 8,  size: 30, garden: true },
+  { id: 'glowshroom', ic: 'glowshroom', name: 'ひかるキノコ',     price: 0, x: 80, y: 6,  size: 28, garden: true, glow: true },
+  { id: 'kelp',       ic: 'kelp',       name: 'ゆらゆらコンブ',   price: 0, x: 18, y: 18, size: 44, garden: true },
+  { id: 'rbflower',   ic: 'rbflower',   name: 'にじいろのはな',   price: 0, x: 72, y: 9,  size: 32, garden: true },
 ];
 
 // ---- すなほり で みつかる もの（ずかん）rare: 1ふつう 2レア 3ちょうレア ----

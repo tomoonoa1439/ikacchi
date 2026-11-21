@@ -211,7 +211,7 @@ export function startEvent(e) {
   const S = G.state, ev = e.run(S, S.tr);
   ev.id = e.id;
   S.seenEv ||= {};
-  S.seenEv[e.id] = (S.seenEv[e.id] || 0) + 1;
+  S.seenEv[e.id] = (S.seenEv[e.id] || 0) + 1; bus.emit('first', 'event');
   log(`ハプニング：${ev.title}`);
   bus.emit('happening', ev);
 }

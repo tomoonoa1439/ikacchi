@@ -122,6 +122,7 @@ export function startKenka(why) {
   addRelPt(v.card.pid, -10, v.card.name);
   G.state.happy = clamp(G.state.happy - 10); nudge({ sunao: -.6 });
   if (!r.kenkaN) remember(`${v.card.name}と はじめて けんかした`, 1);
+  bus.emit('first', 'kenka');
   r.kenkaN = (r.kenkaN || 0) + 1; epi(v.card.pid, 'kenka', why);
   log(`${v.card.name}と けんかした（${why}）`);
   bus.emit('ink');
@@ -144,6 +145,7 @@ function makeUp(meSays) {
   nudge(meSays ? { kind: 1.5, sunao: 1.5 } : { kind: 1 });
   log(`${from}が ごめんねって いえて、${to}と なかなおりした`);
   if (!r.makeupN) remember(`${you}と なかなおり した`, 1);
+  bus.emit('first', 'makeup');
   r.makeupN = (r.makeupN || 0) + 1; epi(v.card.pid, 'makeup');
   bus.emit('makeup', { from, to });
 }
@@ -156,7 +158,7 @@ function confession(meFirst) {
   const listener = meFirst ? yourMul(v.card) : myMul();
   r.askDay = dayKey();
   const ok = Math.random() < clamp((r.pt - 80) / 20, 0, 1) * listener.accept + .1;
-  if (ok) { r.lover = true; nudge({ yuki: 3, kind: 1.5 }); remember(`${you}と こいびとに なった`, 3); epi(v.card.pid, 'lover'); log(`${from}が ${to}に こくはくして、こいびとに なった`); }
+  if (ok) { r.lover = true; nudge({ yuki: 3, kind: 1.5 }); remember(`${you}と こいびとに なった`, 3); epi(v.card.pid, 'lover'); bus.emit('first', 'lover'); log(`${from}が ${to}に こくはくして、こいびとに なった`); }
   else { addRelPt(v.card.pid, -2, you); if (meFirst) nudge({ yuki: -2 }); log(`${from}が ${to}に こくはくしたけど「しんゆうで いたいな」って いわれた`); }
   bus.emit('confess', { from, to, ok });
 }
