@@ -912,10 +912,10 @@ function enHome(){
   const ls=lis.filter(p=>S.enLis[p.id]!=null),lavg=ls.length?Math.round(ls.reduce((a,p)=>a+S.enLis[p.id],0)/ls.length):null;
   const up=lv<10&&rdone>=2&&ls.length>=2&&lavg>=80;
   const pn={2:'Part 2 応答問題',3:'Part 3 会話問題',4:'Part 4 説明文問題'};
-  return `<h1>話せるようになる語学</h1>${langSeg()}${xpCard()}
+  return `<h1>話せるようになる語学</h1>${langSeg()}
   <div class="card hero"><div class="wk"><b>レベル ${lv}：${e.name}</b><button class="lnk" onclick="PL=null;go('enplace')">変更</button></div><div class="small">目安：${e.guide}</div>
     ${due?`<button class="big-btn alt" onclick="startReview()">🔁 単語の復習 ${Math.min(due,40)}枚</button>`:''}
-    ${up?`<div class="tip">このレベルの長文とリスニングができています。<button class="lnk" onclick="enLevelUp(${lv+1})">🚀 レベル ${lv+1} に上げる ›</button></div>`:''}</div>
+    ${up?`<div class="tip">このレベルの長文とリスニングができています。<button class="lnk" onclick="S.enLv=${lv+1};save();render()">レベル ${lv+1} に上げる ›</button></div>`:''}</div>
   <div class="stats"><div><b>${streak()}</b><span>連続日数</span></div><div><b>${wordsKnown()}</b><span>覚えた語句</span></div><div><b>${Object.keys(S.enRead).length}</b><span>読んだ長文</span></div><div><b>${lavg==null?'–':lavg+'%'}</b><span>リスニング</span></div></div>
   <div class="card"><b>📖 長文読解</b><div class="small">英文を読む → 分からない語句をタップ → 和訳で確認 → 復習に追加。</div>
     ${reads.map(p=>`<button class="urow ${S.enRead[p.id]!=null?'done':''}" style="width:100%;margin-top:6px" onclick="rdOpen('${p.id}')"><span class="un">${S.enRead[p.id]!=null?'✓':'読'}</span><span class="ut">${esc(p.title)}</span><span class="tag">${esc(p.type||'AI作成')}</span></button>`).join('')}
@@ -970,35 +970,31 @@ function enGloss(p,si,w){
   const toks=p.sents[si].e.toLowerCase().split(/[^a-z'’-]+/).flatMap(enStem);
   return p.vocab.find(v=>{if(!v.t.includes(' '))return false;const ws=v.t.toLowerCase().split(' ');const lg=ws.filter(x=>x.length>3||ws.length<3);return ws.some(x=>x.length>2&&st.includes(x))&&lg.filter(x=>toks.includes(x)).length>=Math.ceil(lg.length/2)})||null;
 }
-function rdWord(el){const si=+el.dataset.s,w=el.dataset.w;RD.sel={si,w,g:enGloss(RD.p,si,w),ai:null,busy:false,err:''};render()}
-async function rdAsk(){const s=RD.sel;if(!s||!AI)return;s.busy=true;render();
-  try{s.ai=await askAI(`Explain for a Japanese learner the word "${s.w}" as used in this sentence: "${RD.p.sents[s.si].e}". Return ONLY JSON: {"lemma":"dictionary form (or the whole idiom if the word is part of one)","m":"short Japanese meaning in this context","note":"one short Japanese note on usage or nuance, or empty"}`)}
-  catch(e){s.err=aiErr(e)}s.busy=false;render()}
+function rdWord(el){const si=+el.dataset.s,w=el.dataset.w;const g=enGloss(RD.p,si,w);RD.sel={si,w,g,d:g?null:enDictLook(w,el.dataset.i!=='0')};render()}
 function senHtml(p,si,cls){
   const s=p.sents[si];
-  return s.e.split(/(\s+)/).map(tok=>{const m=tok.match(/^([^A-Za-z]*)([A-Za-z][A-Za-z'’-]*)(.*)$/);if(!m)return esc(tok);
+  let wi=-1;return s.e.split(/(\s+)/).map(tok=>{if(/\S/.test(tok))wi++;const m=tok.match(/^([^A-Za-z]*)([A-Za-z][A-Za-z'’-]*)(.*)$/);if(!m)return esc(tok);
     const g=enGloss(p,si,m[2]),sel=RD&&RD.sel&&RD.sel.si===si&&RD.sel.w===m[2];
-    return `${esc(m[1])}<span class="w ${g?'g':''} ${sel?'sel':''}" data-s="${si}" data-w="${esc(m[2])}" onclick="rdWord(this)">${esc(m[2])}</span>${esc(m[3])}`}).join('');
+    return `${esc(m[1])}<span class="w ${g?'g':''} ${sel?'sel':''}" data-s="${si}" data-i="${wi}" data-w="${esc(m[2])}" onclick="rdWord(this)">${esc(m[2])}</span>${esc(m[3])}`}).join('');
 }
 function vocabRow(v){const it=L().byT[v.t],has=it&&(card(it,'R')||card(it,'L'));
   return `<div class="item"><div class="tx"><div class="t" style="font-size:17px">${esc(v.t)}</div><div class="m">${esc(v.m)}</div></div><button class="spk s" data-t="${esc(v.t)}" onclick="speak(this.dataset.t)">🔊</button>${has?'<span class="tag">復習中</span>':`<button class="ghost s" data-t="${esc(v.t)}" data-m="${esc(v.m)}" onclick="addCustom(this.dataset.t,'',this.dataset.m);render()">＋復習</button>`}</div>`}
 function qsHtml(p,ans,fn){return p.qs.map((q,qi)=>{const a=ans[qi];return `<div class="card"><b>${qi+1}. ${esc(q.q)}</b><div class="opts">${q.o.map((o,oi)=>`<button class="opt ${a!=null?(oi===q.a?'ok':(oi===a?'ng':'')):''}" ${a!=null?'disabled':''} onclick="${fn}(${qi},${oi})">(${'ABCD'[oi]}) ${esc(o)}</button>`).join('')}</div></div>`}).join('')}
-function rdAns(qi,oi){RD.ans[qi]=oi;const p=RD.p;hit(oi===p.qs[qi].a,3);if(p.qs.every((_,i)=>RD.ans[i]!=null)){S.enRead[p.id]=Math.round(p.qs.filter((q,i)=>RD.ans[i]===q.a).length/p.qs.length*100);logT().read=1;bonus(20)}render()}
+function rdAns(qi,oi){RD.ans[qi]=oi;const p=RD.p;if(p.qs.every((_,i)=>RD.ans[i]!=null)){S.enRead[p.id]=Math.round(p.qs.filter((q,i)=>RD.ans[i]===q.a).length/p.qs.length*100);logT().read=1;save()}render()}
 function enReadView(){
   const p=RD.p,sel=RD.sel,done=p.qs.length&&p.qs.every((_,i)=>RD.ans[i]!=null);
-  const panel=()=>{const g=sel.g,a=sel.ai;
-    return `<div class="gl"><b>${esc(g?g.t:(a?a.lemma||sel.w:sel.w))}</b> <button class="spk s" data-t="${esc(g?g.t:sel.w)}" onclick="speak(this.dataset.t)">🔊</button>
-    ${g?`<div>${esc(g.m)}</div>`:a?`<div>${esc(a.m||'')}</div>${a.note?`<div class="small">${esc(a.note)}</div>`:''}`:`<div class="small">この語は語句リストにありません。${AI?'':'「訳」で文の和訳を確認してください。'}</div>`}
-    ${sel.err?`<div class="small" style="color:var(--bad)">${esc(sel.err)}</div>`:''}
-    <div class="tools">${g||a?`<button class="ghost s" data-t="${esc(g?g.t:(a.lemma||sel.w))}" data-m="${esc(g?g.m:(a.m||''))}" onclick="addCustom(this.dataset.t,'',this.dataset.m)">＋復習に追加</button>`:''}
-    ${!g&&!a&&AI?`<button class="ghost s" onclick="rdAsk()" ${sel.busy?'disabled':''}>${sel.busy?'調べています…':'🤖 この文での意味を聞く'}</button>`:''}
+  const panel=()=>{const g=sel.g,d=sel.d,x=g||d;
+    return `<div class="gl"><b>${esc(x?x.t:sel.w)}</b> <button class="spk s" data-t="${esc(x&&!x.name?x.t:sel.w)}" onclick="speak(this.dataset.t)">🔊</button>
+    ${x?`<div>${esc(x.m)}</div>${d&&!d.name?'<div class="small">辞書の一般的な意味です。この文での訳は「訳」で確かめてください。</div>':''}`:`<div class="small">この語は内蔵の辞書にありません。文の和訳で確かめてください。</div>`}
+    <div class="tools">${x&&!x.name?`<button class="ghost s" data-t="${esc(x.t)}" data-m="${esc(x.m)}" onclick="addCustom(this.dataset.t,'',this.dataset.m)">＋復習に追加</button>`:''}
+    ${RD.showAll||RD.open[sel.si]?'':`<button class="ghost s" onclick="RD.open[${sel.si}]=true;render()">この文の和訳を見る</button>`}
     <button class="lnk" onclick="RD.sel=null;render()">閉じる</button></div></div>`};
   return `<div class="top"><button class="back" onclick="go('home')">‹ 戻る</button><span class="small">レベル ${p.lv} · ${esc(p.type||'AI作成')}</span></div>
   <h1 style="font-size:19px">${esc(p.title)}</h1>
   <div class="tools"><button class="ghost" onclick="playAll(RD.p.sents.map(s=>({t:s.e})))">${playing?'⏹ 停止':'▶ 全文を聞く'}</button>
     <button class="ghost" onclick="RD.showAll=!RD.showAll;render()">${RD.showAll?'和訳を隠す':'和訳をすべて表示'}</button>
     <button class="ghost" onclick="S.slow=!S.slow;save();render()">${S.slow?'🐢':'🐇'}</button></div>
-  <div class="small" style="margin-top:8px">まず和訳なしで読んでみましょう。点線の語句はタップで意味が出ます。ほかの語もタップできます。</div>
+  <div class="small" style="margin-top:8px">まず和訳なしで読んでみましょう。どの単語もタップすると意味が出ます（点線はこの文章の重要語句）。</div>
   <div class="card psg">${p.sents.map((s,si)=>`<div class="sen"><span class="en">${senHtml(p,si)}</span>
     <span class="sb"><button data-t="${esc(s.e)}" onclick="speak(this.dataset.t)">🔊</button><button onclick="RD.open[${si}]=!RD.open[${si}];render()">訳</button></span>
     ${RD.showAll||RD.open[si]?`<div class="tr">${esc(s.j)}</div>`:''}${sel&&sel.si===si?panel():''}</div>`).join('')}</div>
@@ -1024,9 +1020,9 @@ function lsPlay(){const p=LS.p;
   if(LS.playing){LS.playing=false;try{speechSynthesis.cancel()}catch(e){}render();return}
   if(p.part===2){const it=p.items[LS.idx];enSeq([{t:it.q,sp:'W',gap:700},...it.o.map((o,i)=>({t:'ABC'[i]+'. '+o,sp:'M',gap:500}))])}
   else enSeq(p.sents.map(s=>({t:s.e,sp:s.s||'N'})))}
-function ls2Ans(i){const it=LS.p.items[LS.idx];LS.a2=i;hit(i===it.a,3);if(i===it.a)LS.ok++;LS.playing=false;try{speechSynthesis.cancel()}catch(e){}render()}
-function ls2Next(){LS.idx++;LS.a2=null;LS.played=false;LS.plays=0;if(LS.idx>=LS.p.items.length){S.enLis[LS.p.id]=Math.round(LS.ok/LS.p.items.length*100);logT().lis=1;bonus(15)}render();window.scrollTo(0,0)}
-function lsAns(qi,oi){LS.ans[qi]=oi;const p=LS.p;hit(oi===p.qs[qi].a,3);if(p.qs.every((_,i)=>LS.ans[i]!=null)){S.enLis[p.id]=Math.round(p.qs.filter((q,i)=>LS.ans[i]===q.a).length/p.qs.length*100);logT().lis=1;bonus(15);LS.playing=false;try{speechSynthesis.cancel()}catch(e){}}render()}
+function ls2Ans(i){const it=LS.p.items[LS.idx];LS.a2=i;if(i===it.a)LS.ok++;LS.playing=false;try{speechSynthesis.cancel()}catch(e){}render()}
+function ls2Next(){LS.idx++;LS.a2=null;LS.played=false;LS.plays=0;if(LS.idx>=LS.p.items.length){S.enLis[LS.p.id]=Math.round(LS.ok/LS.p.items.length*100);logT().lis=1;save()}render();window.scrollTo(0,0)}
+function lsAns(qi,oi){LS.ans[qi]=oi;const p=LS.p;if(p.qs.every((_,i)=>LS.ans[i]!=null)){S.enLis[p.id]=Math.round(p.qs.filter((q,i)=>LS.ans[i]===q.a).length/p.qs.length*100);logT().lis=1;save();LS.playing=false;try{speechSynthesis.cancel()}catch(e){}}render()}
 function enLisView(){
   const p=LS.p,pn={2:'Part 2 応答問題',3:'Part 3 会話問題',4:'Part 4 説明文問題'}[p.part];
   const head=`<div class="top"><button class="back" onclick="go('home')">‹ 戻る</button><span class="small">レベル ${p.lv} · ${pn}</span></div>`;

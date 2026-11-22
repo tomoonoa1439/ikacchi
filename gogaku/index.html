@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>30日 韓国語・フランス語</title>
+<title>話せるようになる語学</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#faf7f2;--card:#fff;--ink:#1f1d1a;--sub:#6f6a62;--line:#e8e2d8;--ac:#d9534f;--ac-soft:#fbe9e7;--ok:#2e8b57;--bad:#c0392b}
@@ -1003,6 +1003,7 @@ function exHtml(it){
   ${x.ex.length?`<div class="exh">こう言い換えられる</div>${x.ex.map(e=>`<div class="exl"><button class="spk s" data-t="${esc(e[0])}" onclick="event.stopPropagation();speak(this.dataset.t)">🔊</button><div><b>${esc(e[0])}</b><div class="r2">${esc(e[1])}</div><div class="m">${esc(e[2])}</div></div></div>`).join('')}`:''}
   </div>`;
 }
+// ===== ハングル：合成・分解 =====
 // ===== ハングル：合成・分解 =====
 // ===== ハングル：合成・分解 =====
 // ===== ハングル：合成・分解 =====
@@ -3428,6 +3429,769 @@ const EN_R=enParse(EN_READ,'read'),EN_L=enParse(EN_LIS,'lis');
   ];
 })();
 
+// ===================== 英語：内蔵の小さな辞書（長文に出てくる語。AIなしで意味を表示） =====================
+const EN_IRR='went>go took>take ate>eat made>make said>say thought>think been>be was>be were>be is>be are>be am>be being>be had>have has>have having>have began>begin begun>begin fell>fall held>hold sent>send left>leave spent>spend risen>rise eaten>eat known>know lied>lie lives>life better>good best>good worse>bad easier>easy easiest>easy harder>hard earlier>early lower>low fewer>few higher>high wider>wide deeper>deep subtler>subtle weakest>weak cannot>can couldn\'t>can don\'t>do does>do did>do put>put cut>cut set>set let>let kept>keep comes>come becomes>become makes>make studies>study companies>company countries>country difficulties>difficulty deliveries>delivery factories>factory proxies>proxy boxes>box classes>class businesses>business wants>want'.split(' ').reduce((o,x)=>{const [a,b]=x.split('>');o[a]=b;return o},{});
+const EN_DICT_TXT=`
+lot|たくさん（a lot of＝たくさんの）
+put|置く・入れる
+life|人生・生活
+shape|形
+throw|投げる（throw away＝捨てる）
+pass|過ぎる・通る
+cut|切る・減らす
+end|終わり・終わる（end up＝結局〜になる）
+deal|取引（a great deal＝たくさん）
+walk|歩く
+set|設定する（set up＝立ち上げる）
+far|遠く（as far as＝〜まで）
+build|築く・建てる
+share|共有する・分かち合う
+behavioral|行動の
+spend|（時間・お金を）使う
+leave|去る・〜のままにする
+tone|論調・口調
+incoming|入ってくる
+suspect|疑わしい・疑う
+subtle|微妙な
+proxy|代わりの指標
+employee|従業員
+this|これ・この
+that|あれ・あの／〜ということ／（関係詞）
+these|これら（の）
+those|それら（の）・〜する人々
+it|それ
+its|それの
+itself|それ自身
+he|彼は
+him|彼を・彼に
+his|彼の
+she|彼女は
+her|彼女の・彼女を
+i|私は
+my|私の
+we|私たちは
+our|私たちの
+you|あなた（たち）
+your|あなた（たち）の
+yours|あなたのもの（Yours sincerely＝敬具）
+they|彼らは・それらは
+their|彼らの・それらの
+them|彼らを・それらを
+themselves|彼ら自身
+be|〜である・〜にいる
+have|持っている／（完了形を作る）
+do|する／（疑問文・否定文を作る）
+can|〜できる
+will|〜するだろう・〜するつもりだ
+would|〜だろう／（ていねいな依頼・仮定）
+should|〜すべきだ
+may|〜かもしれない・〜してよい
+must|〜しなければならない
+ought|〜すべきである（ought to）
+need|必要とする
+the|その（特定のものを指す）
+a|1つの
+an|1つの
+and|そして
+but|しかし
+or|または
+nor|〜もまた…ない
+so|だから・とても
+if|もし〜なら
+when|〜するとき・いつ
+while|〜する間・〜する一方で
+because|なぜなら
+though|〜だけれども
+whether|〜かどうか
+than|〜よりも
+as|〜として・〜のように・〜なので
+yet|けれども・まだ
+still|それでも・まだ
+then|それから・次に
+thus|このように・したがって
+therefore|したがって
+however|しかし
+rather|むしろ
+also|〜もまた
+too|〜も・〜すぎる
+even|〜でさえ
+just|ちょうど・ただ
+only|ただ〜だけ
+merely|単に
+simply|単に・簡単に
+not|〜でない
+no|ない・いいえ／No.＝番号
+never|決して〜ない
+none|何も〜ない
+nothing|何もない
+neither|どちらも〜ない
+nobody|誰も〜ない
+of|〜の
+in|〜の中に
+on|〜の上に・〜に（曜日）
+at|〜で・〜に（時刻）
+to|〜へ・〜に／（to＋動詞）〜すること
+for|〜のために・〜の間
+with|〜と一緒に・〜で
+without|〜なしで
+from|〜から
+by|〜によって・〜までに
+about|〜について・およそ
+into|〜の中へ
+through|〜を通じて
+over|〜の上に・〜にわたって
+under|〜の下で
+after|〜のあとで
+before|〜の前に
+during|〜の間
+within|〜以内に
+since|〜以来・〜なので
+against|〜に対して
+off|離れて・（スイッチが）切れて／割引で
+out|外へ
+up|上へ
+away|離れて
+back|戻って
+again|もう一度
+there|そこに
+where|どこ・〜する場所
+who|誰・〜する人
+whose|誰の・その人（もの）の
+which|どれ・（関係詞）それは
+what|何・〜するもの
+whatever|〜するものは何でも
+why|なぜ
+all|すべて（の）
+any|どんな〜でも・いくらか
+some|いくつかの・ある〜
+many|多くの
+much|たくさん・とても
+more|もっと・より多くの
+most|ほとんどの・最も
+less|より少なく
+few|ほとんどない・少数の
+several|いくつかの
+both|両方
+other|ほかの
+others|ほかの人たち・ほかのもの
+such|そのような（such as＝〜のような）
+every|毎〜・すべての
+each|それぞれ
+enough|十分な
+half|半分
+one|1・1つ
+two|2
+three|3
+five|5
+six|6
+seven|7
+eleven|11
+thirteen|13
+twenty|20
+twenty-four|24
+thirty|30
+forty|40
+sixty|60
+ninety|90
+hundred|100（hundreds of＝何百もの）
+million|100万
+first|最初の
+second|2番目の
+third|3番目の・3分の1
+fourth|4番目の
+twice|2回
+once|一度・いったん〜すると
+percent|パーセント
+number|数
+minimum|最低限
+average|平均
+very|とても
+well|よく・十分に
+almost|ほとんど
+nearly|ほぼ
+entirely|完全に
+altogether|完全に・全部で
+perfectly|完全に
+heavily|大量に・重く
+directly|直接
+easily|容易に
+finally|ついに
+gradually|次第に
+quietly|静かに・そっと
+naturally|自然に
+apparently|見かけ上は・どうやら
+approximately|およそ
+particularly|特に
+precisely|正確に
+frequently|頻繁に
+rapidly|急速に
+swiftly|素早く
+surprisingly|驚くほど
+commercially|商業的に
+exclusively|もっぱら・〜だけ
+strictly|厳密に
+endlessly|際限なく
+variously|さまざまに
+seldom|めったに〜ない
+often|よく・しばしば
+sometimes|ときどき
+ever|これまでに
+already|すでに
+now|今
+today|今日
+later|あとで
+ago|〜前に
+early|早く・早い
+late|遅い・遅れた
+long|長い・長く
+last|この前の・最後の
+next|次の
+past|過去・〜を過ぎて
+future|将来・今後の
+time|時間・〜回
+year|年
+week|週
+day|日
+hour|時間（60分）
+minute|分
+morning|朝
+night|夜
+summer|夏
+date|日付
+period|期間
+calendar|暦・日程
+march|3月
+april|4月
+may|5月／〜かもしれない
+june|6月
+saturday|土曜日
+sunday|日曜日
+thursday|木曜日
+old|古い・〜歳の
+new|新しい
+good|よい
+bad|悪い
+great|すばらしい・大きな（a great deal＝多くのこと）
+small|小さい
+high|高い
+low|低い
+wide|広い
+deep|深い
+hard|難しい・大変な・固い
+easy|簡単な
+soft|やわらかい・あいまいな
+weak|弱い
+full|完全な・いっぱいの
+open|開いた・開かれた
+closed|閉まった
+clear|明らかな
+real|本当の
+safe|安全な
+sick|病気の
+sorry|申し訳なく思う
+happy|幸せな
+beautiful|美しい
+wonderful|すばらしい
+important|重要な
+wrong|間違った
+fair|公正な
+able|有能な・〜できる
+certain|ある種の・確かな
+personal|個人的な
+individual|個人の
+main|主な
+major|主要な
+original|元の
+initial|最初の
+recent|最近の
+additional|追加の
+existing|既存の
+positive|前向きな・良い
+reliable|信頼できる
+valuable|価値のある
+universal|普遍的な
+economic|経済の
+central|中央の
+regional|地域の
+annual|年間の
+public|公共の
+general|全般の（General Manager＝総支配人）
+remote|遠隔の
+hybrid|混合型の
+junior|若手の・下位の
+experienced|経験豊富な
+traditional|従来の・伝統的な
+hidden|隠れた
+unplanned|予定外の
+unsold|売れ残った
+mistaken|間違っている
+unchanged|変わらない
+unlikely|〜しそうにない
+likely|〜しそうな
+notable|目立つ
+cautious|慎重な
+comfortable|快適な・恵まれた
+unhurried|ゆったりした
+successful|成功した
+unsuccessful|成功しなかった
+accurate|正確な
+nonexistent|存在しない
+insulated|断熱された
+refrigerated|冷蔵の
+overnight|翌日配達の・一晩の
+overseas|海外の
+online|オンラインの
+plastic|プラスチックの・ビニールの
+square|四角い
+thing|もの・こと
+people|人々
+child|子ども
+childhood|子ども時代
+family|家族
+mother|母
+brother|兄・弟
+sister|姉・妹
+nephew|おい
+student|生徒・学生
+pupil|生徒
+scientist|科学者
+worker|労働者
+manager|管理職・支配人
+staff|従業員
+owner|所有者・店主
+customer|顧客
+user|利用者
+shopper|買い物客
+subscriber|加入者
+retailer|小売業者
+exporter|輸出業者
+analyst|アナリスト
+organizer|主催者
+operator|事業者・運営者
+governor|総裁・知事
+champion|擁護者・優勝者
+satirist|風刺家
+anyone|誰でも
+partner|相手・パートナー
+team|チーム・部門
+group|グループ
+company|会社
+firm|会社
+business|事業・仕事
+organization|組織
+department|部門
+office|オフィス・事務所
+bank|銀行
+government|政府
+society|社会
+market|市場
+economy|経済
+school|学校
+class|クラス・授業
+lesson|授業
+exam|試験
+examination|試験
+study|勉強する・研究
+research|研究
+experiment|実験
+survey|調査
+theory|理論
+knowledge|知識
+information|情報
+data|データ
+idea|考え・アイデア
+ideal|理想
+insight|洞察
+question|質問・問題
+problem|問題
+issue|問題
+difficulty|困難
+objection|反論
+argument|主張・議論
+conclusion|結論
+finding|調査結果・知見
+result|結果
+effect|効果・影響
+purpose|目的
+reality|現実
+case|場合
+matter|問題・重要である
+word|言葉・単語
+term|用語・言葉
+message|メッセージ
+letter|手紙
+e-mail|Eメール
+memo|社内メモ
+statement|声明
+subject|件名・主題
+note|注意する・メモ
+request|依頼
+order|注文（する）
+agreement|契約・合意
+policy|政策・方針
+rule|規則
+system|システム・制度
+model|型・モデル
+scheme|計画・制度
+process|手続き・過程
+standard|水準・基準
+level|水準
+measure|指標・測定する
+measurement|測定
+metric|指標
+indicator|指標
+figure|数字
+rate|率・金利
+price|価格
+cost|費用・代償
+money|お金
+pay|給与・払う
+wage|賃金
+credit|クレジット・信用
+card|カード
+coupon|クーポン
+savings|節約・貯蓄
+sale|販売・売上
+growth|成長・伸び
+gain|利益・向上・得る
+output|生産量
+capacity|能力・設備
+interest|金利・関心
+inflation|インフレ
+currency|通貨
+bond|債券
+pressure|圧力
+peak|頂点
+quarter|四半期／方面（in some quarters＝一部で）
+home|家
+room|部屋
+kitchen|台所
+bed|ベッド
+desk|机
+lamp|ライト
+box|箱
+bag|袋
+bottle|びん
+book|本
+e-book|電子書籍
+paper|紙
+form|用紙・形
+label|表示・ラベル
+phone|電話
+smartphone|スマートフォン
+computer|コンピューター
+app|アプリ
+video|ビデオ
+call|通話・呼ぶ
+engine|エンジン・仕組み
+catalogue|一覧・カタログ
+network|網・ネットワーク
+route|ルート
+map|地図
+territory|領土・現地
+shop|店
+store|店
+supermarket|スーパー
+restaurant|レストラン
+bakery|パン屋
+hotel|ホテル
+library|図書館
+hospital|病院
+ward|病棟
+corridor|廊下
+factory|工場
+warehouse|倉庫
+farm|農場
+street|通り
+country|国
+state|州・状態
+world|世界
+sea|海
+animal|動物
+food|食べ物
+meal|食事
+lunch|昼食
+dinner|夕食
+rice|ご飯・米
+soup|スープ
+bread|パン
+sourdough|サワードウ（天然酵母のパン）
+jam|ジャム
+tofu|豆腐
+vegetable|野菜
+grocery|食料品
+garbage|ごみ
+waste|廃棄・無駄
+soccer|サッカー
+trip|旅行
+travel|旅行（する）・出張
+entertainment|接待・娯楽
+fun|楽しい
+face|顔
+body|体
+heart|心・中心
+head|頭・（部門の）長
+health|健康
+memory|記憶
+sleep|眠る・睡眠
+cold|風邪・寒い
+air|空気（air conditioning＝空調）
+conditioning|調整（air conditioning＝空調）
+front|前（front desk＝フロント）
+side|側
+position|地位・立場
+range|範囲
+line|ライン・列
+product|製品
+item|品物・資料
+service|サービス
+delivery|配達
+packaging|包装
+transport|輸送
+purchasing|仕入れ・購入
+acquisition|買収
+management|経営（陣）
+board|取締役会
+executive|経営幹部（chief executive＝最高経営責任者）
+chief|最高位の・主な
+relationship|関係
+connection|人脈・つながり
+competition|競争
+race|競争・レース
+advantage|有利な点
+privilege|特権
+achievement|業績
+merit|能力・長所
+meritocracy|能力主義
+aristocracy|貴族制
+hierarchy|序列
+fortune|運・財産
+confidence|自信
+enthusiasm|熱狂
+suspicion|疑い
+trust|信頼
+modesty|慎み
+reminder|念押し・思い出させるもの
+guidance|見通し・指針
+expectation|予想・期待
+decision|決定
+choice|選択（肢）
+option|選択肢
+preference|好み
+selection|品ぞろえ・選択
+recommendation|推薦
+conversation|会話
+session|会・集まり
+training|研修
+conference|会議
+picture|写真・状況
+work|仕事・働く・うまくいく
+job|仕事
+task|作業
+plan|計画（する）
+value|価値・高く評価する
+balance|バランス（を取る）
+challenge|疑問を投げかける・課題
+risk|危険（を冒す）
+target|目標
+function|役割・機能
+mistake|間違い・取り違える（mistake A for B）
+blame|責める
+like|〜が好きだ・〜のような
+want|〜が欲しい・〜したい
+get|得る・〜になる（get up＝起きる、get back＝取り戻す）
+go|行く
+come|来る
+eat|食べる
+make|作る・〜を…にする
+take|取る・（時間が）かかる
+say|言う
+talk|話す
+ask|尋ねる・頼む
+answer|答える・応じる
+think|思う・考える
+know|知っている
+understand|理解する
+learn|学ぶ
+teach|教える
+find|見つける・〜だと分かる
+look|見る
+watch|じっと見る
+show|示す
+see|見る
+smell|においをかぐ
+play|（スポーツを）する・遊ぶ
+use|使う
+try|試みる
+stop|やめる・止まる
+begin|始める・始まる
+continue|続ける
+keep|保つ・〜し続ける
+remain|〜のままである
+become|〜になる
+seem|〜のように見える
+appear|〜のように見える・現れる
+happen|起こる
+change|変わる・変える
+move|移る・移す
+switch|切り替える
+shorten|短縮する
+extend|広げる
+strengthen|強化する・強くなる
+expand|拡大する
+grow|成長する・増える
+rise|上がる
+climb|上昇する
+fall|下がる・落ちる
+vanish|消える
+disappear|消える
+fail|失敗する・〜しそこなう
+close|完了する・閉じる
+open|開く
+check|確認する
+receive|受け取る
+send|送る
+ship|発送する・船
+arrive|到着する
+visit|訪れる
+stay|滞在（する）
+wait|待つ
+welcome|歓迎する
+let|〜させる
+allow|〜できるようにする・許す
+require|必要とする
+direct|（質問などを）向ける
+provide|提供する
+offer|申し出る・提供する
+give|与える（give up＝あきらめる）
+add|加える
+save|節約する・保存する
+sell|売る
+buy|買う
+purchase|購入する
+hire|雇う
+operate|運営する
+manage|運営する・管理する
+produce|生み出す
+create|作り出す
+invest|投資する
+upgrade|アップグレード
+upload|アップロードする
+photograph|写真を撮る
+record|記録する
+report|報告（する）
+describe|述べる・描写する
+announce|発表する
+warn|警告する
+argue|主張する
+suggest|示唆する・提案する
+suppose|思う・想定する
+agree|同意する
+approve|承認する
+enter|入る・（契約を）結ぶ（enter into）
+follow|従う・（follow up＝対応する）
+paint|ペンキを塗る
+cancel|キャンセルする
+refund|返金する
+catch|（風邪を）ひく・つかまえる
+fight|闘う
+help|助ける
+thank|感謝する
+expect|予想する・見込む
+aim|目指す
+tend|〜する傾向がある
+prove|〜だと分かる・証明する
+hold|持つ・（考えを）持つ・成り立つ
+judge|評価する
+rank|順位づけする
+tie|結びつける
+track|追う・対応する
+squeeze|圧迫する
+divide|分ける
+tip|傾ける・陥らせる
+react|反応する
+decline|断る・下がる
+insist|強く主張する
+moderate|穏やかになる・鈍化する
+borrow|借りる
+trade|貿易する
+display|見せる
+scroll|スクロールする
+stream|配信する
+match|合う
+participate|参加する
+volunteer|志願する
+draw|引き出す・描く
+discourage|やめるよう仕向ける
+sit|座る・（試験を）受ける
+lie|うそをつく・横たわる
+regard|〜と見なす
+resist|抵抗する
+forget|忘れる
+amount|（amount to＝結局〜になる）量
+abandon|放棄する
+inform|知らせる・材料を与える
+improve|良くなる・良くする
+command|（賛同などを）集める
+query|疑問を呈する
+invite|招く
+age|年を取る・時を経る
+emerge|現れる
+inherit|受け継ぐ
+owe|〜のおかげである・借りがある
+want|〜が欲しい／（be wanted＝求められている）
+speak|話す（strictly speaking＝厳密に言えば）
+misquote|誤って引用する
+game|（数字などを）操作する・ゲーム
+wonder|不思議に思う
+engineering|技術（部門）
+inconvenience|不便
+closure|休館・閉鎖
+beginning|〜から・始まり
+including|〜を含めて
+understanding|理解（すること）
+planning|計画を立てること
+working|働くこと
+sleeping|眠ること
+studying|勉強すること
+reading|読書（reading room＝閲覧室）
+writing|書いている
+waiting|待つこと（waiting time＝待ち時間）
+closing|閉店（closing time＝閉店時刻）
+dear|（手紙の書き出し）〜様
+sincerely|敬具
+ms|〜さん（女性への敬称）
+mr|〜さん（男性への敬称）
+please|どうぞ・〜してください
+six-month|6か月間の
+four-day|4日間の
+office-based|オフィス中心の
+long-held|長年の
+well-run|よく運営された
+cold-chain|低温物流の
+much-cited|よく引用される
+hard-won|苦労して得た
+well-born|生まれのよい
+twofold|2つの面がある
+furoshiki|風呂敷
+miso|みそ
+kilometer|キロメートル
+freight|貨物輸送
+logistics|物流
+finance|経理・財務
+supply|用品・供給
+`;
+const EN_DICT={};EN_DICT_TXT.trim().split('\n').forEach(l=>{const p=l.split('|');if(p[1]&&!EN_DICT[p[0]])EN_DICT[p[0]]=p[1]});
+// 内蔵辞書で調べる：そのままの形 → 不規則形 → 語尾を外した形 → 固有名詞
+function enDictLook(w,mid){
+  const lw=w.toLowerCase().replace(/[’']s$/,'');
+  const cands=[lw,EN_IRR[lw],...enStem(lw),lw.replace(/d$/,''),lw.replace(/er$/,''),lw.replace(/est$/,''),lw.replace(/ier$/,'y'),lw.replace(/ying$/,'ie')].filter(Boolean);
+  for(const c of cands)if(EN_DICT[c])return {t:c,m:EN_DICT[c]};
+  for(const c of cands){const it=DATA.en.byT[c];if(it)return {t:c,m:it.m}}
+  if(/^[A-Z]/.test(w))return {t:w,m:'固有名詞（人・会社・場所などの名前）',name:1};
+  return null;
+}
+
 // ===================== state =====================
 
 const DEF={lang:'ko',done:{ko:{},fr:{},en:{}},score:{ko:{},fr:{},en:{}},furi:'auto',slow:false,srs:{ko:{},fr:{},en:{}},cards:{ko:{},fr:{},en:{}},newIdx:{ko:0,fr:0,en:0},newPer:{ko:10,fr:10,en:10},log:{ko:{},fr:{},en:{}},frBase:'en',custom:{ko:[],fr:[],en:[]},ear:{ko:{},fr:{},en:{}},mission:{ko:{},fr:{},en:{}},plan:{cue:'',act:''},migrated:false,intro:{ko:false},unlockAll:false,pathV:0,enLv:0,enRead:{},enLis:{},enGen:[],enGenL:[],xp:{ko:0,fr:0,en:0},badges:{ko:{},fr:{},en:{}},hist:{ko:{},fr:{},en:{}},mute:false,enUp:0};
@@ -4342,10 +5106,10 @@ function enHome(){
   const ls=lis.filter(p=>S.enLis[p.id]!=null),lavg=ls.length?Math.round(ls.reduce((a,p)=>a+S.enLis[p.id],0)/ls.length):null;
   const up=lv<10&&rdone>=2&&ls.length>=2&&lavg>=80;
   const pn={2:'Part 2 応答問題',3:'Part 3 会話問題',4:'Part 4 説明文問題'};
-  return `<h1>話せるようになる語学</h1>${langSeg()}${xpCard()}
+  return `<h1>話せるようになる語学</h1>${langSeg()}
   <div class="card hero"><div class="wk"><b>レベル ${lv}：${e.name}</b><button class="lnk" onclick="PL=null;go('enplace')">変更</button></div><div class="small">目安：${e.guide}</div>
     ${due?`<button class="big-btn alt" onclick="startReview()">🔁 単語の復習 ${Math.min(due,40)}枚</button>`:''}
-    ${up?`<div class="tip">このレベルの長文とリスニングができています。<button class="lnk" onclick="enLevelUp(${lv+1})">🚀 レベル ${lv+1} に上げる ›</button></div>`:''}</div>
+    ${up?`<div class="tip">このレベルの長文とリスニングができています。<button class="lnk" onclick="S.enLv=${lv+1};save();render()">レベル ${lv+1} に上げる ›</button></div>`:''}</div>
   <div class="stats"><div><b>${streak()}</b><span>連続日数</span></div><div><b>${wordsKnown()}</b><span>覚えた語句</span></div><div><b>${Object.keys(S.enRead).length}</b><span>読んだ長文</span></div><div><b>${lavg==null?'–':lavg+'%'}</b><span>リスニング</span></div></div>
   <div class="card"><b>📖 長文読解</b><div class="small">英文を読む → 分からない語句をタップ → 和訳で確認 → 復習に追加。</div>
     ${reads.map(p=>`<button class="urow ${S.enRead[p.id]!=null?'done':''}" style="width:100%;margin-top:6px" onclick="rdOpen('${p.id}')"><span class="un">${S.enRead[p.id]!=null?'✓':'読'}</span><span class="ut">${esc(p.title)}</span><span class="tag">${esc(p.type||'AI作成')}</span></button>`).join('')}
@@ -4400,35 +5164,31 @@ function enGloss(p,si,w){
   const toks=p.sents[si].e.toLowerCase().split(/[^a-z'’-]+/).flatMap(enStem);
   return p.vocab.find(v=>{if(!v.t.includes(' '))return false;const ws=v.t.toLowerCase().split(' ');const lg=ws.filter(x=>x.length>3||ws.length<3);return ws.some(x=>x.length>2&&st.includes(x))&&lg.filter(x=>toks.includes(x)).length>=Math.ceil(lg.length/2)})||null;
 }
-function rdWord(el){const si=+el.dataset.s,w=el.dataset.w;RD.sel={si,w,g:enGloss(RD.p,si,w),ai:null,busy:false,err:''};render()}
-async function rdAsk(){const s=RD.sel;if(!s||!AI)return;s.busy=true;render();
-  try{s.ai=await askAI(`Explain for a Japanese learner the word "${s.w}" as used in this sentence: "${RD.p.sents[s.si].e}". Return ONLY JSON: {"lemma":"dictionary form (or the whole idiom if the word is part of one)","m":"short Japanese meaning in this context","note":"one short Japanese note on usage or nuance, or empty"}`)}
-  catch(e){s.err=aiErr(e)}s.busy=false;render()}
+function rdWord(el){const si=+el.dataset.s,w=el.dataset.w;const g=enGloss(RD.p,si,w);RD.sel={si,w,g,d:g?null:enDictLook(w,el.dataset.i!=='0')};render()}
 function senHtml(p,si,cls){
   const s=p.sents[si];
-  return s.e.split(/(\s+)/).map(tok=>{const m=tok.match(/^([^A-Za-z]*)([A-Za-z][A-Za-z'’-]*)(.*)$/);if(!m)return esc(tok);
+  let wi=-1;return s.e.split(/(\s+)/).map(tok=>{if(/\S/.test(tok))wi++;const m=tok.match(/^([^A-Za-z]*)([A-Za-z][A-Za-z'’-]*)(.*)$/);if(!m)return esc(tok);
     const g=enGloss(p,si,m[2]),sel=RD&&RD.sel&&RD.sel.si===si&&RD.sel.w===m[2];
-    return `${esc(m[1])}<span class="w ${g?'g':''} ${sel?'sel':''}" data-s="${si}" data-w="${esc(m[2])}" onclick="rdWord(this)">${esc(m[2])}</span>${esc(m[3])}`}).join('');
+    return `${esc(m[1])}<span class="w ${g?'g':''} ${sel?'sel':''}" data-s="${si}" data-i="${wi}" data-w="${esc(m[2])}" onclick="rdWord(this)">${esc(m[2])}</span>${esc(m[3])}`}).join('');
 }
 function vocabRow(v){const it=L().byT[v.t],has=it&&(card(it,'R')||card(it,'L'));
   return `<div class="item"><div class="tx"><div class="t" style="font-size:17px">${esc(v.t)}</div><div class="m">${esc(v.m)}</div></div><button class="spk s" data-t="${esc(v.t)}" onclick="speak(this.dataset.t)">🔊</button>${has?'<span class="tag">復習中</span>':`<button class="ghost s" data-t="${esc(v.t)}" data-m="${esc(v.m)}" onclick="addCustom(this.dataset.t,'',this.dataset.m);render()">＋復習</button>`}</div>`}
 function qsHtml(p,ans,fn){return p.qs.map((q,qi)=>{const a=ans[qi];return `<div class="card"><b>${qi+1}. ${esc(q.q)}</b><div class="opts">${q.o.map((o,oi)=>`<button class="opt ${a!=null?(oi===q.a?'ok':(oi===a?'ng':'')):''}" ${a!=null?'disabled':''} onclick="${fn}(${qi},${oi})">(${'ABCD'[oi]}) ${esc(o)}</button>`).join('')}</div></div>`}).join('')}
-function rdAns(qi,oi){RD.ans[qi]=oi;const p=RD.p;hit(oi===p.qs[qi].a,3);if(p.qs.every((_,i)=>RD.ans[i]!=null)){S.enRead[p.id]=Math.round(p.qs.filter((q,i)=>RD.ans[i]===q.a).length/p.qs.length*100);logT().read=1;bonus(20)}render()}
+function rdAns(qi,oi){RD.ans[qi]=oi;const p=RD.p;if(p.qs.every((_,i)=>RD.ans[i]!=null)){S.enRead[p.id]=Math.round(p.qs.filter((q,i)=>RD.ans[i]===q.a).length/p.qs.length*100);logT().read=1;save()}render()}
 function enReadView(){
   const p=RD.p,sel=RD.sel,done=p.qs.length&&p.qs.every((_,i)=>RD.ans[i]!=null);
-  const panel=()=>{const g=sel.g,a=sel.ai;
-    return `<div class="gl"><b>${esc(g?g.t:(a?a.lemma||sel.w:sel.w))}</b> <button class="spk s" data-t="${esc(g?g.t:sel.w)}" onclick="speak(this.dataset.t)">🔊</button>
-    ${g?`<div>${esc(g.m)}</div>`:a?`<div>${esc(a.m||'')}</div>${a.note?`<div class="small">${esc(a.note)}</div>`:''}`:`<div class="small">この語は語句リストにありません。${AI?'':'「訳」で文の和訳を確認してください。'}</div>`}
-    ${sel.err?`<div class="small" style="color:var(--bad)">${esc(sel.err)}</div>`:''}
-    <div class="tools">${g||a?`<button class="ghost s" data-t="${esc(g?g.t:(a.lemma||sel.w))}" data-m="${esc(g?g.m:(a.m||''))}" onclick="addCustom(this.dataset.t,'',this.dataset.m)">＋復習に追加</button>`:''}
-    ${!g&&!a&&AI?`<button class="ghost s" onclick="rdAsk()" ${sel.busy?'disabled':''}>${sel.busy?'調べています…':'🤖 この文での意味を聞く'}</button>`:''}
+  const panel=()=>{const g=sel.g,d=sel.d,x=g||d;
+    return `<div class="gl"><b>${esc(x?x.t:sel.w)}</b> <button class="spk s" data-t="${esc(x&&!x.name?x.t:sel.w)}" onclick="speak(this.dataset.t)">🔊</button>
+    ${x?`<div>${esc(x.m)}</div>${d&&!d.name?'<div class="small">辞書の一般的な意味です。この文での訳は「訳」で確かめてください。</div>':''}`:`<div class="small">この語は内蔵の辞書にありません。文の和訳で確かめてください。</div>`}
+    <div class="tools">${x&&!x.name?`<button class="ghost s" data-t="${esc(x.t)}" data-m="${esc(x.m)}" onclick="addCustom(this.dataset.t,'',this.dataset.m)">＋復習に追加</button>`:''}
+    ${RD.showAll||RD.open[sel.si]?'':`<button class="ghost s" onclick="RD.open[${sel.si}]=true;render()">この文の和訳を見る</button>`}
     <button class="lnk" onclick="RD.sel=null;render()">閉じる</button></div></div>`};
   return `<div class="top"><button class="back" onclick="go('home')">‹ 戻る</button><span class="small">レベル ${p.lv} · ${esc(p.type||'AI作成')}</span></div>
   <h1 style="font-size:19px">${esc(p.title)}</h1>
   <div class="tools"><button class="ghost" onclick="playAll(RD.p.sents.map(s=>({t:s.e})))">${playing?'⏹ 停止':'▶ 全文を聞く'}</button>
     <button class="ghost" onclick="RD.showAll=!RD.showAll;render()">${RD.showAll?'和訳を隠す':'和訳をすべて表示'}</button>
     <button class="ghost" onclick="S.slow=!S.slow;save();render()">${S.slow?'🐢':'🐇'}</button></div>
-  <div class="small" style="margin-top:8px">まず和訳なしで読んでみましょう。点線の語句はタップで意味が出ます。ほかの語もタップできます。</div>
+  <div class="small" style="margin-top:8px">まず和訳なしで読んでみましょう。どの単語もタップすると意味が出ます（点線はこの文章の重要語句）。</div>
   <div class="card psg">${p.sents.map((s,si)=>`<div class="sen"><span class="en">${senHtml(p,si)}</span>
     <span class="sb"><button data-t="${esc(s.e)}" onclick="speak(this.dataset.t)">🔊</button><button onclick="RD.open[${si}]=!RD.open[${si}];render()">訳</button></span>
     ${RD.showAll||RD.open[si]?`<div class="tr">${esc(s.j)}</div>`:''}${sel&&sel.si===si?panel():''}</div>`).join('')}</div>
@@ -4454,9 +5214,9 @@ function lsPlay(){const p=LS.p;
   if(LS.playing){LS.playing=false;try{speechSynthesis.cancel()}catch(e){}render();return}
   if(p.part===2){const it=p.items[LS.idx];enSeq([{t:it.q,sp:'W',gap:700},...it.o.map((o,i)=>({t:'ABC'[i]+'. '+o,sp:'M',gap:500}))])}
   else enSeq(p.sents.map(s=>({t:s.e,sp:s.s||'N'})))}
-function ls2Ans(i){const it=LS.p.items[LS.idx];LS.a2=i;hit(i===it.a,3);if(i===it.a)LS.ok++;LS.playing=false;try{speechSynthesis.cancel()}catch(e){}render()}
-function ls2Next(){LS.idx++;LS.a2=null;LS.played=false;LS.plays=0;if(LS.idx>=LS.p.items.length){S.enLis[LS.p.id]=Math.round(LS.ok/LS.p.items.length*100);logT().lis=1;bonus(15)}render();window.scrollTo(0,0)}
-function lsAns(qi,oi){LS.ans[qi]=oi;const p=LS.p;hit(oi===p.qs[qi].a,3);if(p.qs.every((_,i)=>LS.ans[i]!=null)){S.enLis[p.id]=Math.round(p.qs.filter((q,i)=>LS.ans[i]===q.a).length/p.qs.length*100);logT().lis=1;bonus(15);LS.playing=false;try{speechSynthesis.cancel()}catch(e){}}render()}
+function ls2Ans(i){const it=LS.p.items[LS.idx];LS.a2=i;if(i===it.a)LS.ok++;LS.playing=false;try{speechSynthesis.cancel()}catch(e){}render()}
+function ls2Next(){LS.idx++;LS.a2=null;LS.played=false;LS.plays=0;if(LS.idx>=LS.p.items.length){S.enLis[LS.p.id]=Math.round(LS.ok/LS.p.items.length*100);logT().lis=1;save()}render();window.scrollTo(0,0)}
+function lsAns(qi,oi){LS.ans[qi]=oi;const p=LS.p;if(p.qs.every((_,i)=>LS.ans[i]!=null)){S.enLis[p.id]=Math.round(p.qs.filter((q,i)=>LS.ans[i]===q.a).length/p.qs.length*100);logT().lis=1;save();LS.playing=false;try{speechSynthesis.cancel()}catch(e){}}render()}
 function enLisView(){
   const p=LS.p,pn={2:'Part 2 応答問題',3:'Part 3 会話問題',4:'Part 4 説明文問題'}[p.part];
   const head=`<div class="top"><button class="back" onclick="go('home')">‹ 戻る</button><span class="small">レベル ${p.lv} · ${pn}</span></div>`;
