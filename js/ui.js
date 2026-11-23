@@ -509,6 +509,7 @@ function openCheck() {
   showModal(`<h3>${ic('search', 20)} しらべる</h3>
     <div class="scroll"><div class="check">
       <div><span>なまえ</span><b>${esc(S.name || 'イカッチ')}（${S.gen}だいめ）</b></div>
+      <div><span>おやの なまえ</span><b>${S.player.name ? esc(S.player.name) : 'まだ'} <button class="btn sm gray" data-a="owner">${S.player.name ? 'かえる' : 'おしえる'}</button></b></div>
       <div><span>しゅるい</span><b>${spName(S.sp, S.sp2)}</b></div>
       <div class="perbox"><span>せいかく</span><b>${perName(S)}</b>${perKnown(S) ? `<small>${perOf(S.per).desc}</small>
         <div class="tags">${quirks(S.tr).map(q => `<em class="qtag">${q.name}</em>`).join('')}</div>` : '<small>どんな こに なるかな？</small>'}
@@ -521,7 +522,7 @@ function openCheck() {
       <div><span>ごきげん</span><b>${hearts(S.happy)}</b></div>
       <div><span>しつけ</span><b><span class="bar sm"><i style="width:${S.discipline}%;background:var(--accent)"></i></span></b></div>
       <div><span>なかよし</span><b>Lv.${bondLevel()}</b></div>
-    </div></div>${closeBtn()}`, { mind: openMind });
+    </div></div>${closeBtn()}`, { mind: openMind, owner: () => askOwner(!!G.state.player.name) });
 }
 
 /* ---------------- こころ（すうじは みせない。ようすから かんじとる） ---------------- */
@@ -745,9 +746,31 @@ export function askName() {
   showModal(`<h3>${ic('chick', 20)} ${spName(S.sp, S.sp2)}が うまれたよ！</h3>${speciesOf(S.sp).rare ? '<p><b class="rare">まぼろしの レアイカ！</b></p>' : ''}<div class="zsq hero">${squidSVG('baby', 'happy', null, null, S.sp, S.sp2)}</div><p>${S.sp2 && S.sp2 !== S.sp ? `${esc((S.parents || []).map(p => p.name).join(' と '))}の こども。ふたりの いいところを まぜた すがた！` : speciesOf(S.sp).desc}<br>${S.parent ? `おやの ${esc(S.parent.name)}に にてるかな？<br>` : ''}どんな こに そだつかな？<br>なまえを つけてあげよう</p>
     <input id="nameInput" maxlength="8" placeholder="イカッチ">
     <div class="row"><button class="btn" data-a="ok">けってい</button></div>`, { ok }, true);
-  function ok() { S.name = ($('nameInput').value.trim() || 'イカッチ'); bus.emit('first', 'name'); closeModal(); say(`ぼく ${S.name}！ よろしくね`); render(); save(); }
+  function ok() { S.name = ($('nameInput').value.trim() || 'イカッチ'); bus.emit('first', 'name'); closeModal(); say(`ぼく ${S.name}！ よろしくね`); render(); save();
+    if (!S.player.name) setTimeout(() => askOwner(), 1600); else setTimeout(() => say(`${S.player.name}、これから よろしくね！`), 2600); }
   $('nameInput').onkeydown = e => { if (e.key === 'Enter') ok(); };
   setTimeout(() => { try { $('nameInput').focus(); } catch (e) {} }, 50);
+}
+// ---------- おやの なまえ（イカが きく）----------
+export function askOwner(change = false) {
+  const S = G.state;
+  if (S.stage === 'egg') return;
+  const go = () => {
+    showModal(`<h3>${ic('ask', 22)} ${esc(S.name || 'イカッチ')}から しつもん</h3><div class="zsq hero">${squidSVG(S.stage, 'happy', S.form, S.inv.hat, S.sp, S.sp2)}</div>
+      <p>${change ? 'あたらしい なまえ、おしえて？' : 'ねえねえ、きみの なまえも おしえて？'}</p>
+      <input id="ownerInput" maxlength="10" placeholder="なまえ" value="${esc(S.player.name || '')}">
+      <div class="row">${change ? '<button class="btn gray" data-a="close">やめる</button>' : '<button class="btn gray" data-a="skip">あとでね</button>'}<button class="btn" data-a="ok">おしえる</button></div>`, { ok, skip }, !change);
+    $('ownerInput').onkeydown = e => { if (e.key === 'Enter') ok(); };
+    setTimeout(() => { try { $('ownerInput').focus(); } catch (e) {} }, 50);
+  };
+  function ok() {
+    const nm = $('ownerInput').value.trim();
+    if (!nm) { say('なまえ、おしえて ほしいな'); return; }
+    dispatch('setPlayerName', { name: nm }); closeModal();
+    say(change ? `わかった！ これからは ${nm}って よぶね` : `${nm}！ すてきな なまえ！ よろしくね、${nm}`); fx('heart'); render(); save();
+  }
+  function skip() { S.ownerAskDay = dayKey(); closeModal(); say('うん、また こんど おしえてね'); }
+  change ? go() : eventModal(go);
 }
 $('moveBtn').onclick = () => openMove();
 $('stopBtn').onclick = () => {

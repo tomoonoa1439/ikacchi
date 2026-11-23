@@ -245,7 +245,8 @@ const A = {
     G.lastPet = Date.now(); S.happy = clamp(S.happy + 4); addBond(1); stat('pet'); bus.emit('first', 'pet');
     nudge(S.fake ? { kind: 1, sunao: -1.5 } : { kind: 1.5, yuki: .6 });   // わがまま中に なでると あまえんぼうに
     S.fake = false;
-    say(pick(['えへへ', 'なでなで うれしい！', 'すき〜！'])); fx('heart'); bus.emit('bounce'); beep(980, .05);
+    const on = S.player.name;
+    say(on && Math.random() < .35 ? pick([`${on}の て、あったかい`, `${on}、だいすき！`, `えへへ、${on}〜`]) : pick(['えへへ', 'なでなで うれしい！', 'すき〜！'])); fx('heart'); bus.emit('bounce'); beep(980, .05);
   },
   playResult({ win, game = 'docchi' }) {
     const S = G.state;
