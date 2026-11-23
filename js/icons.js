@@ -132,6 +132,7 @@ const P = {
   pearl: `<circle cx="16" cy="17" r="11" fill="#fdfbff" ${s}/><circle cx="12" cy="13" r="3.5" fill="#fff"/><path d="M8 22a10 10 0 0 0 14 3" stroke="#e5d9f2" stroke-width="2" fill="none"/>`,
   coin: `<circle cx="16" cy="16" r="12" fill="#ffd54a" stroke="#c99a1a" stroke-width="2"/><circle cx="16" cy="16" r="8" fill="none" stroke="#e6b52e" stroke-width="2"/><path d="M16 11v10" stroke="#c99a1a" stroke-width="2.4" stroke-linecap="round"/>`,
   scale: `<path d="M16 3c8 4 12 11 12 17a12 12 0 0 1-24 0c0-6 4-13 12-17z" fill="#c6a8ff" ${s}/><path d="M16 9c5 3 8 8 8 12a8 8 0 0 1-16 0c0-4 3-9 8-12z" fill="#9fd8ff"/><path d="M16 15c3 2 4 4 4 6a4 4 0 0 1-8 0c0-2 1-4 4-6z" fill="#a8eba0"/>`,
+  fish: `<path d="M4 16c5-7 13-8 19-3l5-4v14l-5-4c-6 5-14 4-19-3z" fill="#ffb36b" ${s}/><circle cx="10" cy="14.5" r="1.8" fill="${O}"/><path d="M15 12c1 2 1 6 0 8" fill="none" stroke="#e8813a" stroke-width="2" stroke-linecap="round"/>`,
   // ---- はたけ ----
   seed: `<path d="M16 5c6 3 9 9 9 14a9 9 0 0 1-18 0c0-5 3-11 9-14z" fill="#c98b4f" ${s}/><path d="M16 9c-3 3-4 7-3 12" stroke="#e6b27a" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="20" cy="15" r="1.2" fill="#ffd54a"/><circle cx="18" cy="21" r="1" fill="#ffd54a"/>`,
   sprout: `<path d="M5 27h22" stroke="#c98b4f" stroke-width="4" stroke-linecap="round"/><path d="M16 26V14" stroke="#4f9a5a" stroke-width="2.6" stroke-linecap="round"/><path d="M16 16c-1-5-6-8-10-6 1 5 6 7 10 6zM16 14c1-6 6-9 11-7-1 6-6 8-11 7z" fill="#7cc68d" ${s}/>`,

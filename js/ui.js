@@ -8,6 +8,7 @@ import { dispatch, makeCard } from './actions.js';
 import { squidSVG, eggSVG } from './art.js';
 import { openGarden, openTricks, roomMode, toggleRoom, firstsHTML, firstDetail } from './ui2.js';
 import { FIRSTS } from './growth.js';
+import { openDocchi, openInk as openInk2, openCatch } from './fun.js';
 import { net, makeLink } from './net.js';
 import { REL, REL_RULE, relOf, relStage, perOf, friendPer, compat, compatMark } from './social.js';
 import { cardTraits } from './traits.js';
@@ -116,10 +117,11 @@ function openFood() {
 function openPlay() {
   if (G.state.energy < 15) { say('つかれてて あそべない…'); return; }
   showModal(`<h3>${ic('ball', 20)} なにで あそぶ？</h3><div class="choices">
-    <button class="choice" data-a="g1"><span class="ic">${ic('eyes', 20)}</span><span class="grow">どっちむく？<small>イカが むく ほうを あてよう</small></span></button>
-    <button class="choice" data-a="g2"><span class="ic">${ic('target', 20)}</span><span class="grow">スミでっぽう<small>タイミングよく スミを とばそう</small></span></button>
+    <button class="choice" data-a="g1"><span class="ic">${ic('eyes', 20)}</span><span class="grow">どっちむく？<small>あっちむいて ホイ！ イカが むく ほうを あてよう</small></span></button>
+    <button class="choice" data-a="g2"><span class="ic">${ic('target', 20)}</span><span class="grow">スミでっぽう<small>およぐ さかなを スミで ねらえ！</small></span></button>
+    <button class="choice" data-a="g4"><span class="ic">${ic('bubbles', 20)}</span><span class="grow">あわキャッチ<small>おちてくる あわや エビを キャッチ！</small></span></button>
     <button class="choice" data-a="g3"><span class="ic">${ic('wand', 20)}</span><span class="grow">げいを おしえる<small>おてほんを みせて、げいを おぼえて もらおう</small></span></button>
-  </div>${closeBtn('やめる')}`, { g1: openGame, g2: openInk, g3: () => openTricks() });
+  </div>${closeBtn('やめる')}`, { g1: openDocchi, g2: openInk2, g3: () => openTricks(), g4: openCatch });
 }
 
 /* スミでっぽう：うごく ねらいが まとに かさなったら タップ */

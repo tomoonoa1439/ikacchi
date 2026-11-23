@@ -91,8 +91,8 @@ const A = {
     S.happy = clamp(S.happy + f.happy);
     care('feed');
     if (wasHungry) { S.shells += 1; care('good'); addBond(1); }
-    say(fav ? `だいすきな ${f.name}だ！` : hate ? `${f.name}…まあ たべるけど` : f.hunger < 10 || id === 'cake' ? 'あま〜い！' : 'もぐもぐ… おいしい！');
-    fx(f.ic); beep(700, .08); bus.emit('bounce');
+    const line = fav ? `だいすきな ${f.name}！ しあわせ〜` : hate ? `${f.name}…まあ たべたけど` : f.hunger < 10 || id === 'cake' ? 'あま〜い！ おいしかった！' : pick(['おいしかった！ ごちそうさま', 'ぷはー、おなか いっぱい', 'もぐもぐ… おいしい！']);
+    bus.emit('eat', { ic: f.ic, fav, hate, line });
     return true;
   },
   futon() {
